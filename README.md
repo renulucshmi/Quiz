@@ -12,6 +12,7 @@ A real-time quiz/poll application using Java Network Programming.
 ## 👥 Team Member Responsibilities
 
 ### Member 1: TCP Server (MainServer.java)
+
 - **Concept:** TCP ServerSocket, Thread Pool
 - **Files:** `src/server/MainServer.java`
 - Create ServerSocket on port 8088
@@ -19,13 +20,15 @@ A real-time quiz/poll application using Java Network Programming.
 - Implement instructor CLI commands
 
 ### Member 2: Client Handler (ClientHandler.java, JsonUtil.java)
+
 - **Concept:** Socket I/O, Protocol Design
 - **Files:** `src/server/ClientHandler.java`, `src/server/JsonUtil.java`
 - Handle individual client connections
 - Parse and send JSON messages
 - Implement communication protocol
 
-### Member 3: HTTP Server & Web UI (HttpDashboard.java, web/*)
+### Member 3: HTTP Server & Web UI (HttpDashboard.java, web/\*)
+
 - **Concept:** HTTP Protocol, RESTful APIs
 - **Files:** `src/server/HttpDashboard.java`, `web/*`
 - Create HTTP server on port 8090
@@ -33,6 +36,7 @@ A real-time quiz/poll application using Java Network Programming.
 - Build web interface (HTML, CSS, JS)
 
 ### Member 4: Student Client (StudentClient.java)
+
 - **Concept:** TCP Client Socket, Async I/O
 - **Files:** `src/client/StudentClient.java`
 - Connect to server
@@ -40,6 +44,7 @@ A real-time quiz/poll application using Java Network Programming.
 - Display polls and results
 
 ### Member 5: Data Management (PollManager.java, Models.java)
+
 - **Concept:** Thread Safety, Concurrency
 - **Files:** `src/server/PollManager.java`, `src/server/Models.java`
 - Thread-safe poll management
@@ -49,21 +54,25 @@ A real-time quiz/poll application using Java Network Programming.
 ## 🚀 How to Build and Run
 
 ### Compile:
+
 ```batch
 compile-all.bat
 ```
 
 ### Run Server:
+
 ```batch
 run-server.bat
 ```
 
 ### Run Client:
+
 ```batch
 run-client.bat
 ```
 
 ### Open Web UI:
+
 ```
 http://localhost:8090/index.html
 http://localhost:8090/student.html
@@ -73,6 +82,7 @@ http://localhost:8090/instructor.html
 ## 📝 Message Protocol (JSON)
 
 ### Client to Server:
+
 ```json
 {"type":"JOIN","name":"Alice"}
 {"type":"ANSWER","answer":"B"}
@@ -80,6 +90,7 @@ http://localhost:8090/instructor.html
 ```
 
 ### Server to Client:
+
 ```json
 {"type":"POLL","id":1,"question":"What is 2+2?","options":["3","4","5","6"]}
 {"type":"RESULT","id":1,"counts":[1,15,2,0],"correct":1}
