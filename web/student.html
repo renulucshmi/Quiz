@@ -1,30 +1,524 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Student Interface</title>
-    <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Client - Remote Polling</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 20px;
+      }
+
+      .container {
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 600px;
+        width: 100%;
+        padding: 40px;
+      }
+
+      .header {
+        text-align: center;
+        margin-bottom: 30px;
+      }
+
+      .header h1 {
+        color: #667eea;
+        font-size: 2em;
+        margin-bottom: 10px;
+      }
+
+      .header .subtitle {
+        color: #666;
+        font-size: 1.1em;
+      }
+
+      .status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        padding: 15px;
+        background: #f8f9fa;
+        border-radius: 10px;
+        margin-bottom: 30px;
+      }
+
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+      }
+
+      .status.disconnected .status-dot {
+        background: #ef4444;
+        animation: none;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .login-form {
+        display: block;
+      }
+
+      .login-form.hidden,
+      .student-info.hidden,
+      .poll-section.hidden,
+      .waiting-section.hidden {
+        display: none;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        color: #333;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .form-group input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input:focus {
+        outline: none;
+        border-color: #667eea;
+      }
+
+      .btn {
+        width: 100%;
+        padding: 15px;
+        border: none;
+        border-radius: 10px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+      }
+
+      .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+
+      .waiting-section {
+        text-align: center;
+        padding: 40px 0;
+      }
+
+      .waiting-section .icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+      }
+
+      .waiting-section h2 {
+        color: #667eea;
+        margin-bottom: 10px;
+      }
+
+      .waiting-section p {
+        color: #666;
+        font-size: 1.1em;
+      }
+
+      .poll-question {
+        background: #f8f9fa;
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 25px;
+        border-left: 4px solid #667eea;
+      }
+
+      .poll-question h2 {
+        color: #333;
+        font-size: 1.4em;
+        line-height: 1.5;
+      }
+
+      .options {
+        margin-bottom: 25px;
+      }
+
+      .option {
+        background: #f8f9fa;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        transition: all 0.3s;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+      }
+
+      .option:hover {
+        border-color: #667eea;
+        background: #e9ecef;
+      }
+
+      .option.selected {
+        background: #667eea;
+        border-color: #667eea;
+        color: white;
+      }
+
+      .option input[type="radio"] {
+        width: 20px;
+        height: 20px;
+        cursor: pointer;
+      }
+
+      .option label {
+        flex: 1;
+        font-size: 1.1em;
+        cursor: pointer;
+      }
+
+      .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .alert.show {
+        display: block;
+      }
+
+      .alert-success {
+        background: #d1fae5;
+        color: #065f46;
+        border: 1px solid #10b981;
+      }
+
+      .alert-error {
+        background: #fee2e2;
+        color: #991b1b;
+        border: 1px solid #ef4444;
+      }
+
+      .alert-info {
+        background: #dbeafe;
+        color: #1e40af;
+        border: 1px solid #3b82f6;
+      }
+
+      .student-info {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 15px;
+        background: #e9ecef;
+        border-radius: 8px;
+        margin-bottom: 20px;
+      }
+
+      .student-info .name {
+        font-weight: 600;
+        color: #333;
+      }
+
+      .student-info .badge {
+        background: #667eea;
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9em;
+      }
+    </style>
   </head>
   <body>
-    <!-- TODO: Member 3 - Create student web interface -->
     <div class="container">
-      <h1>🎓 Student Poll Interface</h1>
+      <div class="header">
+        <h1>👨‍🎓 Student Client</h1>
+        <p class="subtitle">Remote Classroom Polling System</p>
+      </div>
 
-      <!-- Login Section -->
-      <div id="loginSection">
-        <!-- TODO: Add name input and connect button -->
+      <div class="status" id="status">
+        <span class="status-dot"></span>
+        <span id="status-text">Ready to connect</span>
+      </div>
+
+      <div id="alert" class="alert"></div>
+
+      <!-- Login Form -->
+      <div class="login-form" id="loginForm">
+        <div class="form-group">
+          <label for="studentName">Enter Your Name</label>
+          <input
+            type="text"
+            id="studentName"
+            placeholder="e.g., Alice"
+            autofocus
+          />
+        </div>
+        <button class="btn btn-primary" onclick="connectToServer()">
+          Connect & Join
+        </button>
+      </div>
+
+      <!-- Student Info (after login) -->
+      <div class="student-info hidden" id="studentInfo">
+        <span class="name" id="displayName"></span>
+        <span class="badge">Connected</span>
+      </div>
+
+      <!-- Waiting for Poll -->
+      <div class="waiting-section hidden" id="waitingSection">
+        <div class="icon">🎯</div>
+        <h2>Waiting for Poll</h2>
+        <p>The instructor will start a poll shortly...</p>
       </div>
 
       <!-- Poll Section -->
-      <div id="pollSection" class="hidden">
-        <!-- TODO: Add poll question and options -->
-      </div>
+      <div class="poll-section hidden" id="pollSection">
+        <div class="poll-question">
+          <h2 id="pollQuestion">Loading question...</h2>
+        </div>
 
-      <!-- Results Section -->
-      <div id="resultsSection" class="hidden">
-        <!-- TODO: Add results display with bar charts -->
+        <div class="options" id="optionsContainer">
+          <!-- Options will be inserted here -->
+        </div>
+
+        <button class="btn btn-primary" id="submitBtn" onclick="submitAnswer()">
+          Submit Answer
+        </button>
       </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+      let ws = null;
+      let studentName = "";
+      let currentPollId = null;
+      let selectedChoice = null;
+
+      function showAlert(message, type) {
+        const alert = document.getElementById("alert");
+        alert.className = `alert alert-${type} show`;
+        alert.textContent = message;
+        setTimeout(() => {
+          alert.className = "alert";
+        }, 5000);
+      }
+
+      function updateStatus(text, connected) {
+        const status = document.getElementById("status");
+        const statusText = document.getElementById("status-text");
+        statusText.textContent = text;
+        if (connected) {
+          status.classList.remove("disconnected");
+        } else {
+          status.classList.add("disconnected");
+        }
+      }
+
+      function connectToServer() {
+        const nameInput = document.getElementById("studentName");
+        studentName = nameInput.value.trim();
+
+        if (!studentName) {
+          showAlert("Please enter your name", "error");
+          return;
+        }
+
+        // For this demo, we'll use HTTP polling instead of WebSocket
+        // since we want to keep it simple with standard library
+        fetch("/student/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: studentName }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Successfully connected!", "success");
+              updateStatus("Connected", true);
+
+              // Show student info
+              document.getElementById("displayName").textContent = studentName;
+              document.getElementById("studentInfo").classList.remove("hidden");
+              document.getElementById("loginForm").classList.add("hidden");
+              document
+                .getElementById("waitingSection")
+                .classList.remove("hidden");
+
+              // Start polling for polls
+              startPolling();
+            } else {
+              showAlert(data.message || "Connection failed", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Could not connect to server", "error");
+            updateStatus("Connection failed", false);
+          });
+      }
+
+      function startPolling() {
+        console.log("Starting poll checking for student:", studentName);
+        setInterval(() => {
+          fetch(`/student/poll?name=${encodeURIComponent(studentName)}`)
+            .then((response) => response.json())
+            .then((data) => {
+              console.log("Poll response:", data);
+              if (data.active && data.pollId !== currentPollId) {
+                console.log("New poll detected, showing poll");
+                showPoll(data);
+              } else if (!data.active && currentPollId) {
+                console.log("Poll ended, showing waiting");
+                showWaiting();
+              }
+            })
+            .catch((error) => {
+              console.error("Polling error:", error);
+            });
+        }, 2000); // Poll every 2 seconds
+      }
+
+      function showPoll(pollData) {
+        console.log("showPoll called with data:", pollData);
+        currentPollId = pollData.pollId;
+        selectedChoice = null;
+
+        // Hide waiting, show poll
+        console.log("Hiding waiting section, showing poll section");
+        document.getElementById("waitingSection").classList.add("hidden");
+        document.getElementById("pollSection").classList.remove("hidden");
+
+        // Set question
+        document.getElementById("pollQuestion").textContent = pollData.question;
+        console.log("Question set:", pollData.question);
+
+        const container = document.getElementById("optionsContainer");
+        container.innerHTML = "";
+
+        // Handle options array (might be JSON string or array)
+        let options = pollData.options;
+        console.log(
+          "Options received (type: " + typeof options + "):",
+          options
+        );
+
+        if (typeof options === "string") {
+          try {
+            options = JSON.parse(options);
+            console.log("Parsed options:", options);
+          } catch (e) {
+            console.error("Error parsing options:", e);
+            options = [];
+          }
+        }
+
+        options.forEach((option, index) => {
+          const choice = String.fromCharCode(65 + index); // A, B, C, D
+          const div = document.createElement("div");
+          div.className = "option";
+          div.onclick = () => selectOption(choice, div);
+          div.innerHTML = `
+                    <input type="radio" name="answer" id="opt${choice}" value="${choice}">
+                    <label for="opt${choice}">(${choice}) ${option}</label>
+                `;
+          container.appendChild(div);
+          console.log("Added option:", choice, option);
+        });
+
+        updateStatus("Active Poll - Answer now!", true);
+        showAlert("New poll received! Please answer.", "info");
+      }
+
+      function selectOption(choice, element) {
+        selectedChoice = choice;
+        document.querySelectorAll(".option").forEach((opt) => {
+          opt.classList.remove("selected");
+        });
+        element.classList.add("selected");
+        document.getElementById("opt" + choice).checked = true;
+      }
+
+      function submitAnswer() {
+        if (!selectedChoice) {
+          showAlert("Please select an answer", "error");
+          return;
+        }
+
+        fetch("/student/answer", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: studentName,
+            pollId: currentPollId,
+            choice: selectedChoice,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Answer submitted successfully! ✓", "success");
+              document.getElementById("submitBtn").disabled = true;
+              document.querySelectorAll(".option").forEach((opt) => {
+                opt.style.pointerEvents = "none";
+              });
+            } else {
+              showAlert(data.message || "Failed to submit answer", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error submitting answer", "error");
+          });
+      }
+
+      function showWaiting() {
+        currentPollId = null;
+        document.getElementById("pollSection").classList.add("hidden");
+        document.getElementById("waitingSection").classList.remove("hidden");
+        document.getElementById("submitBtn").disabled = false;
+        document.querySelectorAll(".option").forEach((opt) => {
+          opt.style.pointerEvents = "auto";
+        });
+        updateStatus("Waiting for next poll...", true);
+      }
+    </script>
   </body>
 </html>

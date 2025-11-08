@@ -1,17 +1,59 @@
+
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Remote Polling System</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remote Classroom Polling Dashboard</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
     <div class="container">
-      <h1>🎓 Remote Classroom Polling System</h1>
-      <p>Select your interface:</p>
-      <div class="buttons">
-        <a href="student.html" class="btn">Student Interface</a>
-        <a href="instructor.html" class="btn">Instructor Dashboard</a>
+      <header>
+        <h1>📊 Remote Classroom Polling System</h1>
+        <p class="subtitle">Live Poll Dashboard</p>
+      </header>
+
+      <div id="status-indicator" class="status-indicator">
+        <span class="status-dot"></span>
+        <span id="status-text">Connecting...</span>
       </div>
+
+      <div id="poll-container" class="poll-container">
+        <div id="no-poll" class="no-poll">
+          <div class="icon">🎯</div>
+          <h2>No Active Poll</h2>
+          <p>Waiting for instructor to start a poll...</p>
+        </div>
+
+        <div id="poll-content" class="poll-content" style="display: none">
+          <div class="poll-header">
+            <h2 id="poll-question">Loading question...</h2>
+            <div class="poll-meta">
+              <span id="total-votes" class="badge">0 votes</span>
+            </div>
+          </div>
+
+          <div id="options-container" class="options-container">
+            <!-- Options will be inserted here dynamically -->
+          </div>
+
+          <div id="correct-answer" class="correct-answer" style="display: none">
+            <div class="correct-badge">
+              ✓ Correct Answer: <strong id="correct-choice">-</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>Network Programming Assignment • 5th Semester • October 2025</p>s
+        <p class="tech-stack">
+          Java 21 • TCP Sockets • Multithreading • Embedded HTTP Server
+        </p>
+      </footer>
     </div>
+
+    <script src="script.js"></script>
   </body>
 </html>

@@ -1,23 +1,306 @@
-/* TODO: Member 3 - Add CSS styling */
+/* Remote Classroom Polling Dashboard Styles */
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  margin: 0;
+  min-height: 100vh;
   padding: 20px;
+  color: #333;
 }
 
 .container {
-  max-width: 800px;
+  max-width: 900px;
   margin: 0 auto;
+}
+
+/* Header */
+header {
+  text-align: center;
+  color: white;
+  margin-bottom: 30px;
+}
+
+header h1 {
+  font-size: 2.5em;
+  margin-bottom: 10px;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.subtitle {
+  font-size: 1.2em;
+  opacity: 0.9;
+}
+
+/* Status Indicator */
+.status-indicator {
   background: white;
-  padding: 30px;
+  padding: 15px 25px;
   border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin-bottom: 20px;
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
-.hidden {
+.status-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 2s infinite;
+}
+
+.status-indicator.inactive .status-dot {
+  background: #ef4444;
+  animation: none;
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+#status-text {
+  font-weight: 600;
+  color: #333;
+}
+
+/* Poll Container */
+.poll-container {
+  background: white;
+  border-radius: 15px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  min-height: 400px;
+}
+
+/* No Poll State */
+.no-poll {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-poll .icon {
+  font-size: 5em;
+  margin-bottom: 20px;
+}
+
+.no-poll h2 {
+  color: #667eea;
+  margin-bottom: 10px;
+}
+
+.no-poll p {
+  color: #666;
+  font-size: 1.1em;
+}
+
+/* Poll Content */
+.poll-header {
+  margin-bottom: 30px;
+}
+
+#poll-question {
+  font-size: 1.8em;
+  color: #333;
+  margin-bottom: 15px;
+  line-height: 1.4;
+}
+
+.poll-meta {
+  display: flex;
+  gap: 10px;
+}
+
+.badge {
+  background: #667eea;
+  color: white;
+  padding: 5px 15px;
+  border-radius: 20px;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+/* Options */
+.options-container {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.option-item {
+  background: #f8f9fa;
+  border: 2px solid #e9ecef;
+  border-radius: 10px;
+  padding: 20px;
+  transition: all 0.3s ease;
+}
+
+.option-item:hover {
+  border-color: #667eea;
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+}
+
+.option-item.correct {
+  background: #d1fae5;
+  border-color: #10b981;
+}
+
+.option-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.option-label {
+  font-size: 1.1em;
+  font-weight: 600;
+  color: #333;
+}
+
+.option-count {
+  font-size: 1.1em;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.option-item.correct .option-count {
+  color: #10b981;
+}
+
+/* Progress Bar */
+.progress-bar {
+  width: 100%;
+  height: 30px;
+  background: #e9ecef;
+  border-radius: 15px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  transition: width 0.5s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 10px;
+  min-width: 0;
+}
+
+.option-item.correct .progress-fill {
+  background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+}
+
+.progress-percentage {
+  color: white;
+  font-weight: bold;
+  font-size: 0.9em;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.progress-fill[style*="width: 0%"] .progress-percentage,
+.progress-fill[style*="width: 0.0%"] .progress-percentage {
   display: none;
 }
 
-/* TODO: Member 3 - Add more styles for buttons, forms, results, etc. */
+.progress-percentage-outside {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+
+/* Correct Answer Badge */
+.correct-answer {
+  margin-top: 30px;
+  padding: 20px;
+  background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);
+  border-radius: 10px;
+  border: 2px solid #10b981;
+  text-align: center;
+}
+
+.correct-badge {
+  font-size: 1.2em;
+  color: #065f46;
+}
+
+.correct-badge strong {
+  color: #047857;
+  font-size: 1.3em;
+}
+
+/* Footer */
+footer {
+  text-align: center;
+  color: white;
+  margin-top: 30px;
+  opacity: 0.9;
+}
+
+footer p {
+  margin: 5px 0;
+}
+
+.tech-stack {
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  body {
+    padding: 10px;
+  }
+
+  header h1 {
+    font-size: 1.8em;
+  }
+
+  .poll-container {
+    padding: 20px;
+  }
+
+  #poll-question {
+    font-size: 1.3em;
+  }
+
+  .option-item {
+    padding: 15px;
+  }
+}
+
+/* Loading Animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.option-item {
+  animation: fadeIn 0.3s ease;
+}
