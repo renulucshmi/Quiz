@@ -448,9 +448,9 @@
 
         messageDiv.innerHTML = `
                 <div class="message-header">
-                    <span class="message-author ${
-                      isSystem ? "system" : ""
-                    }">${msg.username}</span>
+                    <span class="message-author ${isSystem ? "system" : ""}">${
+          msg.username
+        }</span>
                     <span class="message-time">${time}</span>
                 </div>
                 <div class="message-content">${escapeHtml(msg.message)}</div>

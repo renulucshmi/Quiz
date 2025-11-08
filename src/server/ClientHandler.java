@@ -57,7 +57,8 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
      * Handle incoming JSON message from client.
      */
     private void handleMessage(String json) {
-        if (json.isEmpty()) return;
+        if (json.isEmpty())
+            return;
 
         try {
             Map<String, String> msg = JsonUtil.parseObject(json);
@@ -94,7 +95,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
         String studentId = "student_" + System.currentTimeMillis();
         student = new Student(name.trim(), studentId);
         server.registerStudent(studentId, student, this);
-        
+
         // Register as chat listener
         chatManager.addListener(this);
 
@@ -104,8 +105,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
         String welcome = JsonUtil.buildObject(
                 "type", "welcome",
                 "message", "Welcome " + name + "!",
-                "studentId", studentId
-        );
+                "studentId", studentId);
         out.println(welcome);
 
         // If there's a current poll, send it
@@ -147,8 +147,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
 
             String response = JsonUtil.buildObject(
                     "type", "ack",
-                    "message", "Answer received: " + choice.toUpperCase()
-            );
+                    "message", "Answer received: " + choice.toUpperCase());
             out.println(response);
 
             System.out.println("[ClientHandler] " + student.name + " answered: " + choice);
@@ -156,7 +155,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
             sendError("Failed to record answer (poll may be closed)");
         }
     }
-    
+
     /**
      * Handle chat message from student.
      */
@@ -165,16 +164,16 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
             sendError("Must join first");
             return;
         }
-        
+
         String message = msg.get("message");
         if (message == null || message.trim().isEmpty()) {
             sendError("Empty message");
             return;
         }
-        
+
         // Post message to chat manager
         ChatMessage chatMessage = chatManager.postMessage(student.name, message);
-        
+
         if (chatMessage == null) {
             sendError("Chat is currently disabled");
         }
@@ -185,7 +184,8 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
      * Send current poll to this client.
      */
     public void sendPoll(Poll poll) {
-        if (out == null || poll == null) return;
+        if (out == null || poll == null)
+            return;
 
         // Reset answered status for new poll
         if (student != null) {
@@ -197,8 +197,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
                 "id", poll.id,
                 "question", poll.question,
                 "options", poll.options,
-                "timeout", poll.timeoutSeconds
-        );
+                "timeout", poll.timeoutSeconds);
         out.println(json);
     }
 
@@ -206,7 +205,8 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
      * Send result to this client.
      */
     public void sendResult(Poll poll) {
-        if (out == null || poll == null) return;
+        if (out == null || poll == null)
+            return;
 
         int[] counts = new int[poll.options.length];
         for (int i = 0; i < poll.options.length; i++) {
@@ -217,8 +217,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
                 "type", "result",
                 "id", poll.id,
                 "counts", counts,
-                "correct", poll.revealed ? poll.getCorrectChoice() : null
-        );
+                "correct", poll.revealed ? poll.getCorrectChoice() : null);
         out.println(json);
     }
 
@@ -228,11 +227,10 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
     private void sendError(String message) {
         String json = JsonUtil.buildObject(
                 "type", "error",
-                "message", message
-        );
+                "message", message);
         out.println(json);
     }
-    
+
     /**
      * ChatListener implementation - called when new chat message arrives.
      */
@@ -244,12 +242,11 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
                     "id", message.id,
                     "username", message.username,
                     "message", message.message,
-                    "timestamp", message.timestamp
-            );
+                    "timestamp", message.timestamp);
             out.println(json);
         }
     }
-    
+
     /**
      * ChatListener implementation - called when chat is cleared.
      */
@@ -258,8 +255,7 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
         if (out != null) {
             String json = JsonUtil.buildObject(
                     "type", "chatCleared",
-                    "message", "Chat history has been cleared"
-            );
+                    "message", "Chat history has been cleared");
             out.println(json);
         }
     }
@@ -273,15 +269,18 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
         if (student != null) {
             // Unregister from chat
             chatManager.removeListener(this);
-            
+
             server.unregisterStudent(student.id);
             System.out.println("[ClientHandler] Student disconnected: " + student.name);
         }
 
         try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null) socket.close();
+            if (in != null)
+                in.close();
+            if (out != null)
+                out.close();
+            if (socket != null)
+                socket.close();
         } catch (IOException e) {
             System.out.println("[ClientHandler] Cleanup error: " + e.getMessage());
         }

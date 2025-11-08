@@ -413,8 +413,8 @@
       <!-- Chat Management Panel -->
       <div class="panel">
         <h2>💬 Chat Management</h2>
-        
-        <div class="stats-grid" style="margin-bottom: 20px;">
+
+        <div class="stats-grid" style="margin-bottom: 20px">
           <div class="stat-card">
             <div class="number" id="chatMessages">0</div>
             <div class="label">Messages</div>
@@ -427,7 +427,7 @@
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
           <button class="btn btn-start" onclick="enableChat()">
             Enable Chat
           </button>
@@ -623,7 +623,7 @@
       // Update stats every 2 seconds
       setInterval(updateStats, 2000);
       updateStats();
-      
+
       // Chat management functions
       function enableChat() {
         fetch("/chat/enable", { method: "POST" })

@@ -89,7 +89,8 @@ public class StudentClient {
      * Handle incoming message from server.
      */
     private void handleMessage(String json) {
-        if (json.isEmpty()) return;
+        if (json.isEmpty())
+            return;
 
         if ("PONG".equals(json)) {
             return; // Heartbeat response
@@ -264,21 +265,21 @@ public class StudentClient {
         String message = msg.get("message");
         System.err.println("✗ Error: " + message);
     }
-    
+
     /**
      * Handle incoming chat message.
      */
     private void handleChatMessage(Map<String, String> msg) {
         String username = msg.get("username");
         String message = msg.get("message");
-        
+
         if ("SYSTEM".equals(username)) {
             System.out.println("\n[SYSTEM] " + message);
         } else {
             System.out.println("\n💬 " + username + ": " + message);
         }
     }
-    
+
     /**
      * Handle chat cleared notification.
      */
@@ -293,8 +294,10 @@ public class StudentClient {
         java.util.HashMap<String, String> map = new java.util.HashMap<>();
 
         json = json.trim();
-        if (json.startsWith("{")) json = json.substring(1);
-        if (json.endsWith("}")) json = json.substring(0, json.length() - 1);
+        if (json.startsWith("{"))
+            json = json.substring(1);
+        if (json.endsWith("}"))
+            json = json.substring(0, json.length() - 1);
 
         // Simple split (doesn't handle nested objects or arrays properly)
         String[] pairs = json.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
@@ -317,7 +320,8 @@ public class StudentClient {
     private String buildJson(String... keyValues) {
         StringBuilder sb = new StringBuilder("{");
         for (int i = 0; i < keyValues.length; i += 2) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append("\"").append(keyValues[i]).append("\":\"");
             sb.append(keyValues[i + 1]).append("\"");
         }
@@ -329,8 +333,10 @@ public class StudentClient {
      * Remove quotes from string.
      */
     private String unquote(String s) {
-        if (s.startsWith("\"")) s = s.substring(1);
-        if (s.endsWith("\"")) s = s.substring(0, s.length() - 1);
+        if (s.startsWith("\""))
+            s = s.substring(1);
+        if (s.endsWith("\""))
+            s = s.substring(0, s.length() - 1);
         return s;
     }
 
@@ -340,9 +346,12 @@ public class StudentClient {
     private void cleanup() {
         running = false;
         try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null) socket.close();
+            if (in != null)
+                in.close();
+            if (out != null)
+                out.close();
+            if (socket != null)
+                socket.close();
         } catch (IOException e) {
             // Ignore
         }

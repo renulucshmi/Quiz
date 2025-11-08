@@ -15,6 +15,7 @@ A real-time quiz/poll application with **Chat/Discussion Feature** using Java Ne
 The chat feature allows students to discuss poll questions and results in real-time:
 
 ### Features:
+
 - **Real-time messaging** - Instant broadcast to all connected students
 - **Instructor moderation** - Enable/disable chat at any time
 - **Message history** - Store up to 100 recent messages
@@ -25,6 +26,7 @@ The chat feature allows students to discuss poll questions and results in real-t
 ### How to Use Chat:
 
 #### For Instructors:
+
 1. Open Instructor Panel: `http://localhost:8090/instructor.html`
 2. Use chat controls:
    - `enablechat` - Enable chat for discussion (CLI)
@@ -34,12 +36,14 @@ The chat feature allows students to discuss poll questions and results in real-t
 3. Click "Open Chat Room" to monitor discussions
 
 #### For Students (Web):
+
 1. Open Chat Room: `http://localhost:8090/chat.html`
 2. Enter your name to join
 3. Send messages when chat is enabled
 4. View real-time messages from other students
 
 #### For Students (TCP Client):
+
 - Chat messages appear automatically in the console
 - Messages prefixed with 💬 username
 - System messages shown in brackets
@@ -180,6 +184,7 @@ http://localhost:8090/chat.html
 ## 🆕 Chat Feature Testing
 
 ### Test Scenario 1: Basic Chat
+
 1. Start server
 2. Open chat.html in multiple browser tabs
 3. Join with different names
@@ -188,6 +193,7 @@ http://localhost:8090/chat.html
 6. Verify messages appear in real-time on all tabs
 
 ### Test Scenario 2: Moderation
+
 1. With chat enabled and messages flowing
 2. From instructor CLI, run: `disablechat`
 3. Verify students cannot send messages
@@ -195,12 +201,14 @@ http://localhost:8090/chat.html
 5. Verify chat is active again
 
 ### Test Scenario 3: Clear History
+
 1. Send several messages
 2. From instructor CLI, run: `clearchat`
 3. Verify all messages are cleared for all users
 4. System message appears notifying users
 
 ### Test Scenario 4: TCP Client Chat
+
 1. Start server, enable chat
 2. Connect TCP client: `run-client.bat`
 3. Join with a name
