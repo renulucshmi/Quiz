@@ -26,6 +26,7 @@ public class MainServer {
     private final ServerSocket serverSocket;
     private final ExecutorService threadPool;
     private final PollManager pollManager;
+    private final ChatManager chatManager;
     private final HttpDashboard dashboard;
     
     // Thread-safe registry of connected students
@@ -38,7 +39,8 @@ public class MainServer {
         this.serverSocket = new ServerSocket(TCP_PORT);
         this.threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         this.pollManager = new PollManager();
-        this.dashboard = new HttpDashboard(HTTP_PORT, pollManager, students);
+        this.chatManager = new ChatManager();
+        this.dashboard = new HttpDashboard(HTTP_PORT, pollManager, chatManager, students);
         
         System.out.println("╔════════════════════════════════════════════════════════════╗");
         System.out.println("║   Remote Classroom Polling System - Server Started       ║");
@@ -66,7 +68,7 @@ public class MainServer {
         while (running) {
             try {
                 Socket clientSocket = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(clientSocket, pollManager, this);
+                ClientHandler handler = new ClientHandler(clientSocket, pollManager, chatManager, this);
                 threadPool.submit(handler);
                 
             } catch (IOException e) {
@@ -125,6 +127,18 @@ public class MainServer {
                 
             case "reveal":
                 handleReveal();
+                break;
+                
+            case "enablechat":
+                handleEnableChat();
+                break;
+                
+            case "disablechat":
+                handleDisableChat();
+                break;
+                
+            case "clearchat":
+                handleClearChat();
                 break;
                 
             case "status":
@@ -238,6 +252,30 @@ public class MainServer {
     }
     
     /**
+     * Enable chat for discussion.
+     */
+    private void handleEnableChat() {
+        chatManager.enableChat();
+        System.out.println("✓ Chat enabled for discussion.");
+    }
+    
+    /**
+     * Disable chat.
+     */
+    private void handleDisableChat() {
+        chatManager.disableChat();
+        System.out.println("✓ Chat disabled.");
+    }
+    
+    /**
+     * Clear all chat messages.
+     */
+    private void handleClearChat() {
+        chatManager.clearMessages();
+        System.out.println("✓ Chat history cleared.");
+    }
+    
+    /**
      * Show current status.
      */
     private void handleStatus() {
@@ -269,6 +307,14 @@ public class MainServer {
         } else {
             System.out.println("\nNo poll created yet.");
         }
+        
+        // Chat status
+        ChatManager.ChatStats chatStats = chatManager.getStats();
+        System.out.println("\nChat Status:");
+        System.out.println("  Enabled: " + (chatStats.enabled ? "YES" : "NO"));
+        System.out.println("  Total messages: " + chatStats.totalMessages);
+        System.out.println("  Active listeners: " + chatStats.activeListeners);
+        
         System.out.println("═══════════════════\n");
     }
     
@@ -281,6 +327,9 @@ public class MainServer {
         System.out.println("║ startpoll                            - Activate poll      ║");
         System.out.println("║ endpoll                              - End poll           ║");
         System.out.println("║ reveal                               - Reveal answer      ║");
+        System.out.println("║ enablechat                           - Enable chat        ║");
+        System.out.println("║ disablechat                          - Disable chat       ║");
+        System.out.println("║ clearchat                            - Clear chat history ║");
         System.out.println("║ status                               - Show status        ║");
         System.out.println("║ help                                 - Show this help     ║");
         System.out.println("║ exit                                 - Shutdown server    ║");

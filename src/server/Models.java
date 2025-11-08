@@ -135,4 +135,26 @@ public class Models {
             this.correctChoice = poll.revealed ? poll.getCorrectChoice() : null;
         }
     }
+    
+    /**
+     * Represents a chat message in the discussion.
+     */
+    public static class ChatMessage {
+        public final int id;
+        public final String username;
+        public final String message;
+        public final long timestamp;
+        
+        public ChatMessage(int id, String username, String message) {
+            this.id = id;
+            this.username = username;
+            this.message = message;
+            this.timestamp = System.currentTimeMillis();
+        }
+        
+        public String getFormattedTime() {
+            java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("HH:mm:ss");
+            return sdf.format(new java.util.Date(timestamp));
+        }
+    }
 }

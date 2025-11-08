@@ -5,24 +5,27 @@ import java.net.Socket;
 import java.util.Map;
 import server.Models.Student;
 import server.Models.Poll;
+import server.Models.ChatMessage;
 
 /**
  * Handles a single student client connection.
  * Runs in a separate thread from the thread pool.
  */
-public class ClientHandler implements Runnable {
+public class ClientHandler implements Runnable, ChatManager.ChatListener {
 
     private final Socket socket;
     private final PollManager pollManager;
+    private final ChatManager chatManager;
     private final MainServer server;
     private BufferedReader in;
     private PrintWriter out;
     private Student student;
     private volatile boolean running = true;
 
-    public ClientHandler(Socket socket, PollManager pollManager, MainServer server) {
+    public ClientHandler(Socket socket, PollManager pollManager, ChatManager chatManager, MainServer server) {
         this.socket = socket;
         this.pollManager = pollManager;
+        this.chatManager = chatManager;
         this.server = server;
     }
 
@@ -64,6 +67,8 @@ public class ClientHandler implements Runnable {
                 handleJoin(msg);
             } else if ("answer".equals(type)) {
                 handleAnswer(msg);
+            } else if ("chat".equals(type)) {
+                handleChat(msg);
             } else if ("PING".equals(json)) {
                 out.println("PONG");
             } else {
@@ -89,6 +94,9 @@ public class ClientHandler implements Runnable {
         String studentId = "student_" + System.currentTimeMillis();
         student = new Student(name.trim(), studentId);
         server.registerStudent(studentId, student, this);
+        
+        // Register as chat listener
+        chatManager.addListener(this);
 
         System.out.println("[ClientHandler] Student joined: " + name);
 
@@ -148,6 +156,30 @@ public class ClientHandler implements Runnable {
             sendError("Failed to record answer (poll may be closed)");
         }
     }
+    
+    /**
+     * Handle chat message from student.
+     */
+    private void handleChat(Map<String, String> msg) {
+        if (student == null) {
+            sendError("Must join first");
+            return;
+        }
+        
+        String message = msg.get("message");
+        if (message == null || message.trim().isEmpty()) {
+            sendError("Empty message");
+            return;
+        }
+        
+        // Post message to chat manager
+        ChatMessage chatMessage = chatManager.postMessage(student.name, message);
+        
+        if (chatMessage == null) {
+            sendError("Chat is currently disabled");
+        }
+        // No need to send ACK, the broadcast will handle it
+    }
 
     /**
      * Send current poll to this client.
@@ -200,6 +232,37 @@ public class ClientHandler implements Runnable {
         );
         out.println(json);
     }
+    
+    /**
+     * ChatListener implementation - called when new chat message arrives.
+     */
+    @Override
+    public void onNewMessage(ChatMessage message) {
+        if (out != null) {
+            String json = JsonUtil.buildObject(
+                    "type", "chat",
+                    "id", message.id,
+                    "username", message.username,
+                    "message", message.message,
+                    "timestamp", message.timestamp
+            );
+            out.println(json);
+        }
+    }
+    
+    /**
+     * ChatListener implementation - called when chat is cleared.
+     */
+    @Override
+    public void onChatCleared() {
+        if (out != null) {
+            String json = JsonUtil.buildObject(
+                    "type", "chatCleared",
+                    "message", "Chat history has been cleared"
+            );
+            out.println(json);
+        }
+    }
 
     /**
      * Cleanup resources.
@@ -208,6 +271,9 @@ public class ClientHandler implements Runnable {
         running = false;
 
         if (student != null) {
+            // Unregister from chat
+            chatManager.removeListener(this);
+            
             server.unregisterStudent(student.id);
             System.out.println("[ClientHandler] Student disconnected: " + student.name);
         }

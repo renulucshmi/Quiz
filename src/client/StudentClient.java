@@ -112,6 +112,12 @@ public class StudentClient {
                 case "ack":
                     handleAck(msg);
                     break;
+                case "chat":
+                    handleChatMessage(msg);
+                    break;
+                case "chatCleared":
+                    handleChatCleared();
+                    break;
                 case "error":
                     handleError(msg);
                     break;
@@ -257,6 +263,27 @@ public class StudentClient {
     private void handleError(Map<String, String> msg) {
         String message = msg.get("message");
         System.err.println("✗ Error: " + message);
+    }
+    
+    /**
+     * Handle incoming chat message.
+     */
+    private void handleChatMessage(Map<String, String> msg) {
+        String username = msg.get("username");
+        String message = msg.get("message");
+        
+        if ("SYSTEM".equals(username)) {
+            System.out.println("\n[SYSTEM] " + message);
+        } else {
+            System.out.println("\n💬 " + username + ": " + message);
+        }
+    }
+    
+    /**
+     * Handle chat cleared notification.
+     */
+    private void handleChatCleared() {
+        System.out.println("\n[CHAT] Chat history has been cleared by instructor");
     }
 
     /**

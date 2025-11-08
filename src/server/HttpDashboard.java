@@ -22,15 +22,17 @@ public class HttpDashboard {
     
     private final HttpServer server;
     private final PollManager pollManager;
+    private final ChatManager chatManager;
     private final int port;
     private final ConcurrentHashMap<String, Student> students;
     
     // Track web-based students separately
     private final ConcurrentHashMap<String, String> webStudents = new ConcurrentHashMap<>();
     
-    public HttpDashboard(int port, PollManager pollManager, ConcurrentHashMap<String, Student> students) throws IOException {
+    public HttpDashboard(int port, PollManager pollManager, ChatManager chatManager, ConcurrentHashMap<String, Student> students) throws IOException {
         this.port = port;
         this.pollManager = pollManager;
+        this.chatManager = chatManager;
         this.students = students;
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
         
@@ -49,6 +51,14 @@ public class HttpDashboard {
         server.createContext("/instructor/end", new InstructorEndHandler());
         server.createContext("/instructor/reveal", new InstructorRevealHandler());
         server.createContext("/instructor/stats", new InstructorStatsHandler());
+        
+        // Chat endpoints
+        server.createContext("/chat/messages", new ChatMessagesHandler());
+        server.createContext("/chat/send", new ChatSendHandler());
+        server.createContext("/chat/enable", new ChatEnableHandler());
+        server.createContext("/chat/disable", new ChatDisableHandler());
+        server.createContext("/chat/clear", new ChatClearHandler());
+        server.createContext("/chat/status", new ChatStatusHandler());
         
         server.setExecutor(null); // Use default executor
     }
@@ -765,5 +775,248 @@ public class HttpDashboard {
     private void sendError(HttpExchange exchange, int statusCode, String message) throws IOException {
         String json = JsonUtil.buildObject("error", message);
         sendJson(exchange, statusCode, json);
+    }
+    
+    // ========== Chat HTTP Handlers ==========
+    
+    /**
+     * GET /chat/messages?limit=50
+     * Returns recent chat messages
+     */
+    private class ChatMessagesHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+            
+            try {
+                String query = exchange.getRequestURI().getQuery();
+                String limitStr = getQueryParam(query, "limit");
+                int limit = limitStr != null ? Integer.parseInt(limitStr) : 50;
+                
+                java.util.List<server.Models.ChatMessage> messages = chatManager.getRecentMessages(limit);
+                
+                // Build JSON array
+                StringBuilder json = new StringBuilder("{\"messages\":[");
+                for (int i = 0; i < messages.size(); i++) {
+                    if (i > 0) json.append(",");
+                    server.Models.ChatMessage msg = messages.get(i);
+                    json.append(JsonUtil.buildObject(
+                        "id", msg.id,
+                        "username", msg.username,
+                        "message", msg.message,
+                        "timestamp", msg.timestamp
+                    ));
+                }
+                json.append("],\"enabled\":").append(chatManager.isChatEnabled()).append("}");
+                
+                sendJson(exchange, 200, json.toString());
+                
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * POST /chat/send
+     * Request: {"name": "Alice", "message": "Hello!"}
+     * Response: {"success": true}
+     */
+    private class ChatSendHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+            
+            try {
+                String body = readBody(exchange);
+                Map<String, String> data = parseJson(body);
+                
+                String name = data.get("name");
+                String message = data.get("message");
+                
+                if (name == null || !students.containsKey(name)) {
+                    sendError(exchange, 401, "Not logged in");
+                    return;
+                }
+                
+                if (message == null || message.trim().isEmpty()) {
+                    sendError(exchange, 400, "Message cannot be empty");
+                    return;
+                }
+                
+                server.Models.ChatMessage chatMessage = chatManager.postMessage(name, message);
+                
+                if (chatMessage == null) {
+                    sendError(exchange, 403, "Chat is currently disabled");
+                    return;
+                }
+                
+                String response = JsonUtil.buildObject(
+                    "success", true,
+                    "message", "Message sent"
+                );
+                sendJson(exchange, 200, response);
+                
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * POST /chat/enable
+     * Enable chat (instructor only)
+     */
+    private class ChatEnableHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+            
+            try {
+                chatManager.enableChat();
+                
+                String response = JsonUtil.buildObject(
+                    "success", true,
+                    "message", "Chat enabled"
+                );
+                sendJson(exchange, 200, response);
+                
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * POST /chat/disable
+     * Disable chat (instructor only)
+     */
+    private class ChatDisableHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+            
+            try {
+                chatManager.disableChat();
+                
+                String response = JsonUtil.buildObject(
+                    "success", true,
+                    "message", "Chat disabled"
+                );
+                sendJson(exchange, 200, response);
+                
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * POST /chat/clear
+     * Clear all messages (instructor only)
+     */
+    private class ChatClearHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+            
+            try {
+                chatManager.clearMessages();
+                
+                String response = JsonUtil.buildObject(
+                    "success", true,
+                    "message", "Chat cleared"
+                );
+                sendJson(exchange, 200, response);
+                
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+    
+    /**
+     * GET /chat/status
+     * Returns chat status
+     */
+    private class ChatStatusHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+            
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+            
+            try {
+                ChatManager.ChatStats stats = chatManager.getStats();
+                
+                String response = JsonUtil.buildObject(
+                    "enabled", stats.enabled,
+                    "totalMessages", stats.totalMessages,
+                    "activeListeners", stats.activeListeners
+                );
+                sendJson(exchange, 200, response);
+                
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
     }
 }

@@ -409,6 +409,39 @@
           </div>
         </div>
       </div>
+
+      <!-- Chat Management Panel -->
+      <div class="panel">
+        <h2>💬 Chat Management</h2>
+        
+        <div class="stats-grid" style="margin-bottom: 20px;">
+          <div class="stat-card">
+            <div class="number" id="chatMessages">0</div>
+            <div class="label">Messages</div>
+          </div>
+          <div class="stat-card">
+            <div class="number">
+              <span class="status-badge" id="chatStatus">DISABLED</span>
+            </div>
+            <div class="label">Chat Status</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <button class="btn btn-start" onclick="enableChat()">
+            Enable Chat
+          </button>
+          <button class="btn btn-end" onclick="disableChat()">
+            Disable Chat
+          </button>
+          <button class="btn btn-reveal" onclick="clearChat()">
+            Clear Chat
+          </button>
+          <button class="btn btn-primary" onclick="openChatWindow()">
+            Open Chat Room
+          </button>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -590,6 +623,80 @@
       // Update stats every 2 seconds
       setInterval(updateStats, 2000);
       updateStats();
+      
+      // Chat management functions
+      function enableChat() {
+        fetch("/chat/enable", { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Chat enabled for discussion!", "success");
+              updateChatStatus();
+            }
+          })
+          .catch((error) => {
+            showAlert("Error enabling chat", "error");
+          });
+      }
+
+      function disableChat() {
+        fetch("/chat/disable", { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Chat disabled", "info");
+              updateChatStatus();
+            }
+          })
+          .catch((error) => {
+            showAlert("Error disabling chat", "error");
+          });
+      }
+
+      function clearChat() {
+        if (confirm("Are you sure you want to clear all chat messages?")) {
+          fetch("/chat/clear", { method: "POST" })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Chat history cleared", "success");
+                updateChatStatus();
+              }
+            })
+            .catch((error) => {
+              showAlert("Error clearing chat", "error");
+            });
+        }
+      }
+
+      function openChatWindow() {
+        window.open("chat.html", "ChatRoom", "width=900,height=700");
+      }
+
+      function updateChatStatus() {
+        fetch("/chat/status")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("chatMessages").textContent =
+              data.totalMessages || 0;
+
+            const statusBadge = document.getElementById("chatStatus");
+            if (data.enabled) {
+              statusBadge.textContent = "ENABLED";
+              statusBadge.className = "status-badge status-active";
+            } else {
+              statusBadge.textContent = "DISABLED";
+              statusBadge.className = "status-badge status-inactive";
+            }
+          })
+          .catch((error) => {
+            console.error("Error updating chat status:", error);
+          });
+      }
+
+      // Update chat status periodically
+      setInterval(updateChatStatus, 3000);
+      updateChatStatus();
     </script>
   </body>
 </html>
