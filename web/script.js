@@ -25,15 +25,16 @@ async function updateStats() {
  * Update the connection status indicator.
  */
 function updateStatusIndicator(connected) {
-  const indicator = document.getElementById("status-indicator");
   const statusText = document.getElementById("status-text");
+  const statusDot = document.getElementById("status-dot");
 
   if (connected) {
-    indicator.classList.remove("inactive");
     statusText.textContent = "Connected";
+    statusDot.className =
+      "w-3 h-3 rounded-full bg-emerald-400 animate-pulse-custom shadow-lg";
   } else {
-    indicator.classList.add("inactive");
     statusText.textContent = "Connection Lost";
+    statusDot.className = "w-3 h-3 rounded-full bg-rose-400 shadow-lg";
   }
 }
 
@@ -47,14 +48,14 @@ function renderPollData(data) {
   // Check if there's an active poll
   if (!data.active && !data.question) {
     // No poll
-    noPoll.style.display = "block";
-    pollContent.style.display = "none";
+    noPoll.classList.remove("hidden");
+    pollContent.classList.add("hidden");
     return;
   }
 
   // Show poll content
-  noPoll.style.display = "none";
-  pollContent.style.display = "block";
+  noPoll.classList.add("hidden");
+  pollContent.classList.remove("hidden");
 
   // Update question
   document.getElementById("poll-question").textContent =
@@ -72,10 +73,10 @@ function renderPollData(data) {
   // Show correct answer if revealed
   const correctAnswerDiv = document.getElementById("correct-answer");
   if (data.revealed && data.correct) {
-    correctAnswerDiv.style.display = "block";
+    correctAnswerDiv.classList.remove("hidden");
     document.getElementById("correct-choice").textContent = data.correct;
   } else {
-    correctAnswerDiv.style.display = "none";
+    correctAnswerDiv.classList.add("hidden");
   }
 
   // Check if poll changed
@@ -92,7 +93,8 @@ function renderOptions(data) {
   const container = document.getElementById("options-container");
 
   if (!data.options || data.options.length === 0) {
-    container.innerHTML = "<p>No options available</p>";
+    container.innerHTML =
+      '<p class="text-white/60 text-center">No options available</p>';
     return;
   }
 
@@ -105,36 +107,54 @@ function renderOptions(data) {
     const letter = String.fromCharCode(65 + i); // A, B, C, D
 
     const isCorrect = data.revealed && data.correct === letter;
-    const correctClass = isCorrect ? "correct" : "";
+
+    // Determine border and background color based on correctness
+    let borderClass = "border-white/20";
+    let bgClass = "glass-light";
+
+    if (isCorrect) {
+      borderClass = "border-emerald-400/50";
+      bgClass = "glass-light bg-emerald-500/10";
+    }
 
     html += `
-            <div class="option-item ${correctClass}">
-                <div class="option-header">
-                    <div class="option-label">${escapeHtml(option)}</div>
-                    <div class="option-count">${count} vote${
-      count !== 1 ? "s" : ""
-    }</div>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" style="width: ${percentage}%">
-                        ${
-                          percentage > 10
-                            ? `<span class="progress-percentage">${percentage.toFixed(
-                                1
-                              )}%</span>`
-                            : ""
-                        }
-                    </div>
-                    ${
-                      percentage <= 10 && percentage > 0
-                        ? `<span class="progress-percentage-outside">${percentage.toFixed(
-                            1
-                          )}%</span>`
-                        : ""
-                    }
-                </div>
-            </div>
-        `;
+      <div class="${bgClass} rounded-xl p-4 border ${borderClass} transition-all duration-300 hover:border-white/40">
+        <div class="flex items-center justify-between mb-3">
+          <div class="text-white font-medium text-lg">
+            <span class="text-sky-400 font-semibold">${letter}.</span> ${escapeHtml(
+      option
+    )}
+          </div>
+          <div class="bg-white/10 px-3 py-1 rounded-full text-sm text-white/80">
+            ${count} vote${count !== 1 ? "s" : ""}
+          </div>
+        </div>
+        <div class="relative">
+          <div class="h-3 bg-white/10 rounded-full overflow-hidden">
+            <div class="progress-bar h-full bg-gradient-to-r from-blue-500 to-sky-400 rounded-full transition-all duration-600" style="width: ${percentage}%"></div>
+          </div>
+          ${
+            percentage > 0
+              ? `<div class="text-right mt-1 text-sm font-medium ${
+                  isCorrect ? "text-emerald-400" : "text-sky-400"
+                }">${percentage.toFixed(1)}%</div>`
+              : ""
+          }
+        </div>
+        ${
+          isCorrect
+            ? `
+          <div class="mt-2 flex items-center gap-2 text-emerald-400 text-sm font-medium">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+            <span>Correct Answer</span>
+          </div>
+        `
+            : ""
+        }
+      </div>
+    `;
   }
 
   container.innerHTML = html;
