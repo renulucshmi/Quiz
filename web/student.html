@@ -220,10 +220,10 @@
   <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
     <!-- Main Container -->
     <div
-      class="glass-card rounded-2xl shadow-2xl max-w-md w-full p-8 md:p-10 animate-fadeIn hover:shadow-[0_8px_40px_rgba(59,130,246,0.4)] transition-shadow duration-500"
+      class="glass-card rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 animate-fadeIn hover:shadow-[0_8px_40px_rgba(59,130,246,0.4)] transition-shadow duration-500"
     >
       <!-- Header -->
-      <div class="text-center mb-6">
+      <div class="text-center mb-4">
         <div class="flex items-center justify-center gap-3 mb-2">
           <svg
             class="w-8 h-8 text-white animate-float"
@@ -258,7 +258,7 @@
       <!-- Status Banner -->
       <div
         id="status"
-        class="glass-light rounded-xl px-4 py-3 mt-6 flex items-center gap-3 transition-all duration-500 status-badge"
+        class="glass-light rounded-xl px-4 py-2 mt-4 flex items-center gap-3 transition-all duration-500 status-badge"
         role="status"
         aria-live="polite"
       >
@@ -274,11 +274,11 @@
       <!-- Alert -->
       <div
         id="alert"
-        class="hidden mt-4 rounded-xl px-4 py-3 text-sm transition-all duration-300"
+        class="hidden mt-3 rounded-xl px-4 py-2 text-sm transition-all duration-300"
       ></div>
 
       <!-- Login Form -->
-      <div id="loginForm" class="mt-6 space-y-4 animate-slideIn">
+      <div id="loginForm" class="mt-4 space-y-3 animate-slideIn">
         <div>
           <label for="studentName" class="block text-white/90 font-medium mb-2"
             >Enter Your Name</label
@@ -295,7 +295,7 @@
         </div>
         <button
           onclick="connectToServer()"
-          class="w-full btn-ripple bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl px-5 py-3 font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
+          class="w-full btn-ripple bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl px-5 py-2.5 font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
         >
           <span id="connectBtnText">Connect & Join</span>
           <svg
@@ -315,44 +315,90 @@
       </div>
 
       <!-- Student Info (after login) -->
-      <div
-        id="studentInfo"
-        class="hidden mt-6 flex items-center justify-between gap-3 animate-slideIn"
-      >
-        <div
-          class="glass-light rounded-xl px-4 py-3 flex items-center gap-2 flex-1 border border-white/30 hover:border-white/50 transition-all duration-300"
-        >
-          <svg
-            class="w-5 h-5 text-white/70"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+      <div id="studentInfo" class="hidden mt-4 space-y-2 animate-slideIn">
+        <div class="flex items-center justify-between gap-3">
+          <div
+            class="glass-light rounded-xl px-4 py-3 flex items-center gap-2 flex-1 border border-white/30 hover:border-white/50 transition-all duration-300"
           >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-            />
-          </svg>
-          <span id="displayName" class="text-white/90 font-medium"></span>
+            <svg
+              class="w-5 h-5 text-white/70"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            <span id="displayName" class="text-white/90 font-medium"></span>
+          </div>
+          <div
+            id="connectionBadge"
+            class="rounded-full px-4 py-1.5 text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 flex items-center gap-1.5 shadow-lg"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-custom"
+            ></span>
+            Connected
+          </div>
         </div>
-        <div
-          id="connectionBadge"
-          class="rounded-full px-4 py-1.5 text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 flex items-center gap-1.5 shadow-lg"
-        >
-          <span
-            class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-custom"
-          ></span>
-          Connected
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-2">
+          <!-- Join Chat Button -->
+          <button
+            id="joinChatBtn"
+            onclick="openChatRoom()"
+            class="btn-ripple bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(168,85,247,0.5)] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            <span>Chat</span>
+          </button>
+
+          <!-- Ask Question Button -->
+          <button
+            id="askQuestionBtn"
+            onclick="openQARoom()"
+            class="btn-ripple bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Ask</span>
+          </button>
         </div>
       </div>
 
       <!-- Waiting Section -->
-      <div id="waitingSection" class="hidden mt-8 text-center animate-fadeIn">
-        <div class="mb-6">
+      <div id="waitingSection" class="hidden mt-6 text-center animate-fadeIn">
+        <div class="mb-4">
           <svg
-            class="w-24 h-24 mx-auto text-white/40"
+            class="w-16 h-16 mx-auto text-white/40"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -365,40 +411,42 @@
             />
           </svg>
         </div>
-        <h2 class="text-2xl font-semibold text-white mb-2">Waiting for Poll</h2>
-        <p class="text-white/70">The instructor will start a poll shortly...</p>
+        <h2 class="text-xl font-semibold text-white mb-2">Waiting for Poll</h2>
+        <p class="text-sm text-white/70">
+          The instructor will start a poll shortly...
+        </p>
       </div>
 
       <!-- Poll Section (Active State) -->
       <div
         id="pollSection"
-        class="hidden mt-6 animate-slideIn"
+        class="hidden mt-4 animate-slideIn"
         role="radiogroup"
         aria-label="Poll options"
       >
         <div
-          class="glass-light rounded-xl px-5 py-4 mb-5 border-l-4 border-sky-400 shadow-lg"
+          class="glass-light rounded-xl px-4 py-3 mb-4 border-l-4 border-sky-400 shadow-lg"
         >
           <h2
             id="pollQuestion"
-            class="text-white text-lg font-medium leading-relaxed"
+            class="text-white text-base font-medium leading-relaxed"
           >
             Loading question...
           </h2>
         </div>
 
-        <div id="optionsContainer" class="space-y-3 mb-6">
+        <div id="optionsContainer" class="space-y-2 mb-4">
           <!-- Options will be inserted here -->
         </div>
 
         <button
           id="submitBtn"
           onclick="submitAnswer()"
-          class="w-full btn-ripple bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-white/20 disabled:to-white/20 disabled:text-white/60 disabled:cursor-not-allowed text-white rounded-xl px-5 py-3 font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
+          class="w-full btn-ripple bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-white/20 disabled:to-white/20 disabled:text-white/60 disabled:cursor-not-allowed text-white rounded-xl px-5 py-2.5 font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
         >
           <span id="submitBtnText">Submit Answer</span>
           <svg
-            class="w-5 h-5"
+            class="w-4 h-4"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -414,15 +462,15 @@
       </div>
 
       <!-- Submitted State -->
-      <div id="submittedSection" class="hidden mt-8 text-center animate-fadeIn">
-        <div class="mb-6 relative">
+      <div id="submittedSection" class="hidden mt-6 text-center animate-fadeIn">
+        <div class="mb-4 relative">
           <div class="absolute inset-0 flex items-center justify-center">
             <div
-              class="w-32 h-32 bg-emerald-400/20 rounded-full animate-pulse-custom"
+              class="w-20 h-20 bg-emerald-400/20 rounded-full animate-pulse-custom"
             ></div>
           </div>
           <svg
-            class="w-24 h-24 mx-auto text-emerald-400 relative z-10"
+            class="w-16 h-16 mx-auto text-emerald-400 relative z-10"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -435,10 +483,10 @@
             />
           </svg>
         </div>
-        <h2 class="text-2xl font-semibold text-white mb-2">
+        <h2 class="text-xl font-semibold text-white mb-2">
           Response Submitted
         </h2>
-        <p class="text-white/70 mb-4">
+        <p class="text-sm text-white/70 mb-3">
           Waiting for instructor to reveal results...
         </p>
         <div class="flex justify-center gap-1">
@@ -485,6 +533,52 @@
         setTimeout(() => {
           alert.classList.add("hidden");
         }, 5000);
+      }
+
+      function openChatRoom() {
+        if (!studentName) {
+          showAlert("Please connect first before joining chat", "error");
+          return;
+        }
+
+        // Store student name in localStorage for auto-login
+        localStorage.setItem("chatStudentName", studentName);
+
+        // Open chat in new window
+        const chatWindow = window.open(
+          "chat.html",
+          "_blank",
+          "width=800,height=600"
+        );
+
+        if (!chatWindow) {
+          showAlert("Please allow popups to open the chat window", "error");
+        } else {
+          showAlert("Opening chat room...", "success");
+        }
+      }
+
+      function openQARoom() {
+        if (!studentName) {
+          showAlert("Please connect first before asking questions", "error");
+          return;
+        }
+
+        // Store student name in localStorage for auto-login
+        localStorage.setItem("qaStudentName", studentName);
+
+        // Open Q&A in new window
+        const qaWindow = window.open(
+          "qa.html",
+          "_blank",
+          "width=900,height=700"
+        );
+
+        if (!qaWindow) {
+          showAlert("Please allow popups to open the Q&A window", "error");
+        } else {
+          showAlert("Opening Q&A portal...", "success");
+        }
       }
 
       function updateStatus(text, statusType) {
