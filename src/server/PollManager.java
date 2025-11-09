@@ -24,14 +24,21 @@ public class PollManager {
 
     /**
      * Create a new poll (but don't start it yet).
-     * Sets as current poll automatically.
+     * Auto-selects as current ONLY if there's no current poll yet.
      */
     public Poll createPoll(String question, String[] options, int correctIndex, int timeoutSeconds) {
         String pollId = "poll" + pollIdCounter.getAndIncrement();
         Poll poll = new Poll(pollId, question, options, correctIndex, timeoutSeconds);
         pollHistory.add(poll); // track history
-        currentPoll.set(poll); // Auto-select as current
-        System.out.println("[PollManager] Poll created: " + pollId + " - " + question);
+
+        // Only auto-select if there's no current poll
+        if (currentPoll.get() == null) {
+            currentPoll.set(poll);
+            System.out.println("[PollManager] Poll created and auto-selected: " + pollId + " - " + question);
+        } else {
+            System.out.println("[PollManager] Poll created: " + pollId + " - " + question + " (current poll unchanged)");
+        }
+
         return poll;
     }
 

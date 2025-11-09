@@ -458,10 +458,11 @@
     </div>
 
     <script>
-      let ws = null;
-      let studentName = "";
+      let pollsCreated = 0;
+      let studentName = null;
       let currentPollId = null;
       let selectedChoice = null;
+      let revealTimeout = null; // Track the reveal timeout so we can cancel it
 
       function showAlert(message, type) {
         const alert = document.getElementById("alert");
@@ -575,13 +576,27 @@
             .then((response) => response.json())
             .then((data) => {
               console.log("Poll response:", data);
-              if (data.active && data.pollId !== currentPollId) {
-                console.log("New poll detected, showing poll");
-                showPoll(data);
-              } else if (!data.active && currentPollId) {
-                console.log("Poll ended, showing waiting");
-                // Check if answer was revealed before showing waiting
-                checkForRevealedAnswer();
+
+              // If there's an active poll
+              if (data.active) {
+                // Check if it's a different poll from what we have
+                if (data.pollId !== currentPollId) {
+                  console.log("New/different poll detected:", data.pollId, "current was:", currentPollId);
+                  showPoll(data);
+                } else {
+                  // Same poll is still active
+                  console.log("Current poll still active:", data.pollId);
+                }
+              } else if (!data.active) {
+                // No active poll currently
+                if (currentPollId) {
+                  console.log("Poll ended, checking for reveal");
+                  // Check if answer was revealed before showing waiting
+                  checkForRevealedAnswer();
+                } else {
+                  // Already in waiting state
+                  console.log("No active poll, staying in waiting");
+                }
               }
             })
             .catch((error) => {
@@ -589,7 +604,7 @@
             });
 
           // Also check for revealed answers if we're in submitted state
-          if (currentPollId && document.getElementById("submittedSection").classList.contains("hidden") === false) {
+          if (currentPollId && !document.getElementById("submittedSection").classList.contains("hidden")) {
             checkForRevealedAnswer();
           }
         }, 2000); // Poll every 2 seconds
@@ -599,15 +614,45 @@
         fetch("/stats")
           .then((response) => response.json())
           .then((data) => {
-            console.log("Stats response:", data);
+            console.log("========== checkForRevealedAnswer ==========");
+            console.log("Stats response:", JSON.stringify(data));
+            console.log("Current pollId:", currentPollId);
+            console.log("data.pollId:", data.pollId);
+            console.log("data.revealed:", data.revealed);
+            console.log("data.correct:", data.correct);
+            console.log("data.active:", data.active);
+            console.log("==========================================");
+
+            // Check if this is a different poll (new poll started)
+            if (data.pollId && data.pollId !== currentPollId && data.active) {
+              console.log("New poll started while waiting, switching to new poll");
+              // Fetch the new poll details
+              return fetch(`/student/poll?name=${encodeURIComponent(studentName)}`)
+                .then((response) => response.json())
+                .then((pollData) => {
+                  if (pollData.active) {
+                    showPoll(pollData);
+                  }
+                });
+            }
+
+            // Check if this is a different poll - if so, don't show old revealed answers
+            if (data.pollId && data.pollId !== currentPollId) {
+              console.log("Different poll detected in stats (poll mismatch), resetting to waiting");
+              showWaiting();
+              return;
+            }
+
+            // Check if current poll answer was revealed
             if (data.revealed && data.correct && data.pollId === currentPollId) {
-              console.log("Answer revealed:", data.correct);
+              console.log("Answer revealed for current poll:", data.correct);
               showRevealedAnswer(data);
-            } else if (!data.active && !data.revealed) {
+            } else if (!data.active && !data.revealed && data.pollId === currentPollId) {
               // Poll ended but not revealed yet - stay in submitted state
               console.log("Poll ended, waiting for reveal");
-            } else if (!data.pollId || data.pollId !== currentPollId) {
-              // Different poll or no poll - go back to waiting
+            } else if (!data.pollId) {
+              // No poll - go back to waiting
+              console.log("No current poll, going to waiting");
               showWaiting();
             }
           })
@@ -617,6 +662,14 @@
       }
 
       function showRevealedAnswer(statsData) {
+        console.log("showRevealedAnswer called for poll:", statsData.pollId, "currentPollId:", currentPollId);
+
+        // Double-check we're showing the answer for the correct poll
+        if (statsData.pollId !== currentPollId) {
+          console.log("Poll ID mismatch, not showing revealed answer");
+          return;
+        }
+
         // Update submitted section to show the revealed answer
         const submittedSection = document.getElementById("submittedSection");
 
@@ -643,10 +696,14 @@
         submittedSection.classList.remove("hidden");
         updateStatus("Answer revealed!", "connected");
 
-        // After 5 seconds, go back to waiting
-        setTimeout(() => {
+        // After 5 seconds, go back to waiting and check for new polls
+        // Store the timeout so it can be cleared if a new poll starts
+        revealTimeout = setTimeout(() => {
+          console.log("Reveal timeout, checking for new polls");
+          currentPollId = null; // Reset so we can detect new polls
+          revealTimeout = null;
           showWaiting();
-        }, 10000);
+        }, 5000);
       }
 
       function generateResultsBars(statsData) {
@@ -675,6 +732,14 @@
 
       function showPoll(pollData) {
         console.log("showPoll called with data:", pollData);
+
+        // Clear any pending reveal timeout from previous poll
+        if (revealTimeout) {
+          console.log("Clearing previous reveal timeout");
+          clearTimeout(revealTimeout);
+          revealTimeout = null;
+        }
+
         currentPollId = pollData.pollId;
         selectedChoice = null;
 
@@ -781,9 +846,18 @@
           return;
         }
 
+        if (!currentPollId) {
+          console.error("Cannot submit: currentPollId is null!");
+          showAlert("Error: No active poll. Please wait for a new poll.", "error");
+          return;
+        }
+
+        console.log("Submitting answer:", selectedChoice, "for poll:", currentPollId);
+
         // Show loading state
         const submitBtn = document.getElementById("submitBtn");
         const submitBtnText = document.getElementById("submitBtnText");
+        const originalText = submitBtnText.textContent;
         submitBtnText.innerHTML =
           '<div class="loading-spinner inline-block"></div>';
         submitBtn.disabled = true;
@@ -797,8 +871,12 @@
             choice: selectedChoice,
           }),
         })
-          .then((response) => response.json())
+          .then((response) => {
+            console.log("Answer submission response status:", response.status);
+            return response.json();
+          })
           .then((data) => {
+            console.log("Answer submission response data:", data);
             if (data.success) {
               showAlert("Answer submitted successfully!", "success");
 
@@ -811,19 +889,28 @@
                 updateStatus("Waiting for results...", "waiting");
               }, 500);
             } else {
-              showAlert(data.message || "Failed to submit answer", "error");
-              submitBtnText.textContent = "Submit Answer";
+              console.error("Submission failed:", data.error || data.message);
+              showAlert(data.error || data.message || "Failed to submit answer", "error");
+              submitBtnText.textContent = originalText;
               submitBtn.disabled = false;
             }
           })
           .catch((error) => {
-            showAlert("Error submitting answer", "error");
-            submitBtnText.textContent = "Submit Answer";
+            console.error("Error submitting answer:", error);
+            showAlert("Error submitting answer: " + error.message, "error");
+            submitBtnText.textContent = originalText;
             submitBtn.disabled = false;
           });
       }
 
       function showWaiting() {
+        // Clear any pending reveal timeout
+        if (revealTimeout) {
+          console.log("Clearing reveal timeout in showWaiting");
+          clearTimeout(revealTimeout);
+          revealTimeout = null;
+        }
+
         currentPollId = null;
         document.getElementById("pollSection").classList.add("hidden");
         document.getElementById("submittedSection").classList.add("hidden");

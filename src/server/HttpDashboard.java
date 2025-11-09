@@ -96,6 +96,11 @@ public class HttpDashboard {
                 PollStats stats = pollManager.getStats();
                 String json = buildStatsJson(stats);
 
+                // Log what we're returning
+                System.out.println("[StatsHandler] Returning stats for poll: " + stats.pollId +
+                    ", active=" + stats.active + ", revealed=" + stats.revealed +
+                    ", correct=" + stats.correctChoice);
+
                 byte[] response = json.getBytes("UTF-8");
                 exchange.sendResponseHeaders(200, response.length);
                 OutputStream os = exchange.getResponseBody();
@@ -316,30 +321,41 @@ public class HttpDashboard {
                 String pollId = data.get("pollId");
                 String choice = data.get("choice");
 
+                System.out.println("[StudentAnswerHandler] Received answer from " + name +
+                    " for poll " + pollId + ", choice: " + choice);
+
                 if (name == null || !students.containsKey(name)) {
+                    System.out.println("[StudentAnswerHandler] Error: Not logged in");
                     sendError(exchange, 401, "Not logged in");
                     return;
                 }
 
                 if (pollId == null || choice == null) {
+                    System.out.println("[StudentAnswerHandler] Error: Missing pollId or choice");
                     sendError(exchange, 400, "Missing pollId or choice");
                     return;
                 }
 
                 Poll currentPoll = pollManager.getCurrentPoll();
+                System.out.println("[StudentAnswerHandler] Current poll on server: " +
+                    (currentPoll != null ? currentPoll.id : "null"));
 
                 if (currentPoll == null || !currentPoll.id.equals(pollId)) {
+                    System.out.println("[StudentAnswerHandler] Error: Invalid poll - student trying to answer " +
+                        pollId + " but current is " + (currentPoll != null ? currentPoll.id : "null"));
                     sendError(exchange, 400, "Invalid poll");
                     return;
                 }
 
                 if (!currentPoll.active) {
+                    System.out.println("[StudentAnswerHandler] Error: Poll not active");
                     sendError(exchange, 400, "Poll is not active");
                     return;
                 }
 
                 Student student = students.get(name);
                 if (student.currentPollAnswered != null && student.currentPollAnswered.equals(pollId)) {
+                    System.out.println("[StudentAnswerHandler] Error: Already answered");
                     sendError(exchange, 400, "Already answered");
                     return;
                 }
@@ -347,7 +363,7 @@ public class HttpDashboard {
                 student.currentPollAnswered = pollId;
                 pollManager.tallyAnswer(pollId, choice);
 
-                System.out.println("[Web] " + name + " answered: " + choice);
+                System.out.println("[Web] " + name + " answered: " + choice + " for poll " + pollId);
 
                 String response = JsonUtil.buildObject(
                         "success", true,
@@ -355,6 +371,8 @@ public class HttpDashboard {
                 sendJson(exchange, 200, response);
 
             } catch (Exception e) {
+                System.out.println("[StudentAnswerHandler] Exception: " + e.getMessage());
+                e.printStackTrace();
                 sendError(exchange, 500, "Server error: " + e.getMessage());
             }
         }
@@ -606,9 +624,10 @@ public class HttpDashboard {
                     return;
                 }
 
+                System.out.println("[Web] Revealing answer for poll: " + poll.id);
                 pollManager.revealAnswer();
 
-                System.out.println("[Web] Answer revealed");
+                System.out.println("[Web] Answer revealed for poll: " + poll.id + ", correct=" + poll.getCorrectChoice());
 
                 String response = JsonUtil.buildObject(
                         "success", true,

@@ -794,7 +794,7 @@
           .then((data) => {
             if (data.success) {
               showAlert("Poll selected! Use Start/End/Reveal buttons below.", "info");
-              updateStats(); // Refresh to show selection
+              updateStats(); // Refresh to show selection and update button states
             } else {
               showAlert(data.error || "Failed to select poll", "error");
             }
@@ -825,13 +825,25 @@
 
             // Update poll status badge from currentPoll if provided
             const statusBadge = document.getElementById("pollStatus");
+            const startBtn = document.getElementById("startBtn");
+            const endBtn = document.getElementById("endBtn");
+            const revealBtn = document.getElementById("revealBtn");
+
             if (data.currentPoll) {
               if (data.currentPoll.active) {
                 statusBadge.textContent = "ACTIVE";
                 statusBadge.className = "inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 animate-pulse-custom";
+                // Poll is active: disable start, enable end
+                startBtn.disabled = true;
+                endBtn.disabled = false;
+                revealBtn.disabled = true;
               } else {
                 statusBadge.textContent = "INACTIVE";
                 statusBadge.className = "inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-white/20 text-white/60 border border-white/30";
+                // Poll is inactive: enable start, disable end, enable reveal if not already revealed
+                startBtn.disabled = false;
+                endBtn.disabled = true;
+                revealBtn.disabled = data.currentPoll.revealed ? true : false;
               }
 
               // Reflect current poll question (basic)
@@ -840,6 +852,29 @@
               if (cpd && cq && data.currentPoll.question) {
                 cpd.classList.remove("hidden");
                 cq.textContent = data.currentPoll.question;
+
+                // Update current poll options display
+                // Find the full poll data from polls array
+                const fullPoll = (data.polls || []).find(p => p.pollId === data.currentPoll.pollId);
+                if (fullPoll) {
+                  const optionsContainer = document.getElementById("currentOptions");
+                  optionsContainer.innerHTML = "";
+
+                  (fullPoll.options || []).forEach((option, index) => {
+                    const letter = String.fromCharCode(65 + index);
+                    const div = document.createElement("div");
+                    div.className = "glass-light rounded-lg px-4 py-3 border transition-all duration-300";
+
+                    if (letter === fullPoll.correct) {
+                      div.className += " border-emerald-400/50 bg-emerald-500/10";
+                    } else {
+                      div.className += " border-white/20";
+                    }
+
+                    div.innerHTML = `<span class="text-white font-medium">${letter}.</span> <span class="text-white/90">${option}</span>`;
+                    optionsContainer.appendChild(div);
+                  });
+                }
               }
             }
 
