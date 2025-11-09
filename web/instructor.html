@@ -240,8 +240,6 @@
     </style>
   </head>
   <body class="gradient-bg min-h-screen p-4 md:p-6">
-
-  <body class="gradient-bg min-h-screen p-4 md:p-6">
     <div class="max-w-7xl mx-auto">
       <!-- Header -->
       <div class="text-center mb-8 animate-fadeIn">
@@ -463,6 +461,28 @@
         </div>
       </div>
 
+      <!-- Quiz Questions Panel (NEW) -->
+      <div class="glass-card rounded-2xl p-6 md:p-8 mb-6 animate-fadeIn hover:shadow-[0_8px_40px_rgba(59,130,246,0.4)] transition-shadow duration-500">
+        <div class="flex items-center gap-3 mb-6">
+          <svg class="w-6 h-6 text-sky-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7"/>
+          </svg>
+          <h2 class="text-2xl font-semibold text-white">Quiz Questions</h2>
+          <span class="ml-auto bg-sky-500/20 text-sky-300 px-3 py-1 rounded-full text-sm font-medium border border-sky-400/50">
+            <span id="quizCount">0</span>
+          </span>
+        </div>
+
+        <div id="pollsList" class="space-y-2 max-h-96 overflow-y-auto pr-2">
+          <div class="text-center py-10 text-white/60">
+            <svg class="w-12 h-12 mx-auto mb-2 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3M3 11h18M5 19h14a2 2 0 002-2v-6H3v6a2 2 0 002 2z"/>
+            </svg>
+            <p>No questions added yet</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Chat Management Panel -->
       <div class="glass-card rounded-2xl p-6 md:p-8 mb-6 animate-fadeIn hover:shadow-[0_8px_40px_rgba(59,130,246,0.4)] transition-shadow duration-500">
         <div class="flex items-center gap-3 mb-6">
@@ -593,6 +613,7 @@
               document.getElementById("statPolls").textContent = pollsCreated;
               displayCurrentPoll();
               clearForm();
+              updateStats(); // Refresh to show new poll in list
             } else {
               showAlert(data.message || "Failed to create poll", "error");
             }
@@ -677,11 +698,120 @@
         document.getElementById("correct").value = "B";
       }
 
+      function renderPollsList(polls) {
+        const list = document.getElementById("pollsList");
+        const count = Array.isArray(polls) ? polls.length : 0;
+        document.getElementById("quizCount").textContent = count;
+        document.getElementById("statPolls").textContent = count;
+
+        if (!polls || polls.length === 0) {
+          list.innerHTML = `
+            <div class="text-center py-10 text-white/60">
+              <svg class="w-12 h-12 mx-auto mb-2 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M8 7V3m8 4V3M3 11h18M5 19h14a2 2 0 002-2v-6H3v6a2 2 0 002 2z"/>
+              </svg>
+              <p>No questions added yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        // Determine which poll is currently selected (from server data)
+        let currentPollId = null;
+        if (window.statsData && window.statsData.currentPoll) {
+          currentPollId = window.statsData.currentPoll.pollId;
+        }
+
+        const rows = polls.map((p, idx) => {
+          const isActive = p.active;
+          const isRevealed = p.revealed;
+          const isCurrentlySelected = currentPollId === p.pollId;
+
+          const statusBadge = isActive
+            ? '<span class="px-2 py-0.5 rounded-full text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-400/50">ACTIVE</span>'
+            : '<span class="px-2 py-0.5 rounded-full text-xs bg-white/20 text-white/60 border border-white/30">INACTIVE</span>';
+
+          const revealBadge = isRevealed
+            ? '<span class="px-2 py-0.5 rounded-full text-xs bg-blue-500/20 text-blue-300 border border-blue-400/50">REVEALED</span>'
+            : '';
+
+          const selectedBadge = isCurrentlySelected
+            ? '<span class="px-2 py-0.5 rounded-full text-xs bg-violet-500/20 text-violet-300 border border-violet-400/50">★ SELECTED</span>'
+            : '';
+
+          const optionsHtml = (p.options || []).map((opt, i) => {
+            const letter = String.fromCharCode(65 + i);
+            const correct = p.correct === letter;
+            return `
+              <div class="text-sm px-2 py-1 rounded border ${correct ? 'border-emerald-400/50 bg-emerald-500/10 text-emerald-300' : 'border-white/20 text-white/80'}">
+                <span class="font-semibold text-sky-300">${letter}.</span> ${opt}
+              </div>
+            `;
+          }).join('');
+
+          // Select button (show if not currently selected)
+          const selectButton = !isCurrentlySelected
+            ? `<button onclick="selectPoll('${p.pollId}')" class="px-3 py-1.5 text-xs rounded-lg bg-violet-500/20 text-violet-300 border border-violet-400/50 hover:bg-violet-500/30 transition-all">
+                Select
+              </button>`
+            : '';
+
+          // Highlight border if selected
+          const borderClass = isCurrentlySelected
+            ? 'border-violet-400/50 bg-violet-500/5'
+            : 'border-white/20';
+
+          return `
+            <div class="glass-light rounded-xl px-4 py-3 border ${borderClass} hover:border-white/40 transition-all duration-300">
+              <div class="flex items-start justify-between gap-3 mb-3">
+                <div class="flex-1">
+                  <div class="text-white font-medium mb-2">Q${idx + 1}: ${p.question}</div>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${optionsHtml}
+                  </div>
+                </div>
+                <div class="flex flex-col items-end gap-1">
+                  ${statusBadge}
+                  ${revealBadge}
+                  ${selectedBadge}
+                </div>
+              </div>
+              ${selectButton ? `<div class="flex justify-end">${selectButton}</div>` : ''}
+            </div>
+          `;
+        }).join('');
+
+        list.innerHTML = rows;
+      }
+
+      function selectPoll(pollId) {
+        fetch("/instructor/select", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ pollId: pollId }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Poll selected! Use Start/End/Reveal buttons below.", "info");
+              updateStats(); // Refresh to show selection
+            } else {
+              showAlert(data.error || "Failed to select poll", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error: " + error.message, "error");
+          });
+      }
+
       function updateStats() {
         fetch("/instructor/stats")
           .then((response) => response.json())
           .then((data) => {
             console.log("Stats response:", data);
+
+            // Store globally for poll selection highlighting
+            window.statsData = data;
 
             // Update counts
             const studentCount = data.totalStudents || 0;
@@ -689,13 +819,37 @@
             document.getElementById("statStudents").textContent = studentCount;
             document.getElementById("statVotes").textContent = data.totalVotes || 0;
 
+            // Update polls created + list
+            const polls = data.polls || [];
+            renderPollsList(polls);
+
+            // Update poll status badge from currentPoll if provided
+            const statusBadge = document.getElementById("pollStatus");
+            if (data.currentPoll) {
+              if (data.currentPoll.active) {
+                statusBadge.textContent = "ACTIVE";
+                statusBadge.className = "inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 animate-pulse-custom";
+              } else {
+                statusBadge.textContent = "INACTIVE";
+                statusBadge.className = "inline-block px-3 py-1.5 rounded-full text-xs font-medium bg-white/20 text-white/60 border border-white/30";
+              }
+
+              // Reflect current poll question (basic)
+              const cpd = document.getElementById("currentPollDisplay");
+              const cq = document.getElementById("currentQuestion");
+              if (cpd && cq && data.currentPoll.question) {
+                cpd.classList.remove("hidden");
+                cq.textContent = data.currentPoll.question;
+              }
+            }
+
             // Update students list
             const studentsList = document.getElementById("studentsList");
             if (data.students && data.students.length > 0) {
               studentsList.innerHTML = data.students
                 .map((student) => {
                   const studentName = student.name || student;
-                  const answered = student.answered ? "✓" : "○";
+                  const answered = student.answered ? "\u2713" : "\u25cb";
                   return `
                     <div class="glass-light rounded-xl px-4 py-3 border border-white/20 hover:border-white/40 transition-all duration-300 flex items-center justify-between">
                       <div class="flex items-center gap-3">
@@ -802,9 +956,7 @@
       }
 
       // Update stats and chat status periodically
-      setInterval(updateStats, 2000);
       setInterval(updateChatStatus, 3000);
-      updateStats();
       updateChatStatus();
     </script>
   </body>

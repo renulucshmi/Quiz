@@ -48,6 +48,7 @@ public class HttpDashboard {
 
         // Instructor endpoints
         server.createContext("/instructor/create", new InstructorCreateHandler());
+        server.createContext("/instructor/select", new InstructorSelectHandler());
         server.createContext("/instructor/start", new InstructorStartHandler());
         server.createContext("/instructor/end", new InstructorEndHandler());
         server.createContext("/instructor/reveal", new InstructorRevealHandler());
@@ -421,6 +422,57 @@ public class HttpDashboard {
     }
 
     /**
+     * Instructor endpoint: POST /instructor/select
+     * Request: {"pollId": "poll1"}
+     * Response: {"success": true}
+     */
+    private class InstructorSelectHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if (!"POST".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+
+            try {
+                String body = readBody(exchange);
+                Map<String, String> data = parseJson(body);
+                String pollId = data.get("pollId");
+
+                if (pollId == null || pollId.trim().isEmpty()) {
+                    sendError(exchange, 400, "Poll ID is required");
+                    return;
+                }
+
+                Poll selectedPoll = pollManager.selectPoll(pollId);
+
+                if (selectedPoll == null) {
+                    sendError(exchange, 404, "Poll not found");
+                    return;
+                }
+
+                System.out.println("[Web] Poll selected: " + pollId);
+
+                String response = JsonUtil.buildObject(
+                        "success", true,
+                        "pollId", selectedPoll.id,
+                        "message", "Poll selected!");
+                sendJson(exchange, 200, response);
+
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
      * Instructor endpoint: POST /instructor/start
      * Request: {}
      * Response: {"success": true}
@@ -571,8 +623,7 @@ public class HttpDashboard {
 
     /**
      * Instructor endpoint: GET /instructor/stats
-     * Response: {"students": [...], "totalStudents": 5, "totalVotes": 3,
-     * "pollsCreated": 1}
+     * Response includes students and poll history
      */
     private class InstructorStatsHandler implements HttpHandler {
         @Override
@@ -611,12 +662,32 @@ public class HttpDashboard {
                 }
                 studentsJson += "]";
 
+                // Build polls history
+                StringBuilder pollsJson = new StringBuilder("[");
+                boolean firstPoll = true;
+                for (Poll p : pollManager.getPollHistory()) {
+                    if (!firstPoll) pollsJson.append(",");
+                    firstPoll = false;
+                    String correctLetter = Models.Poll.indexToChoice(p.correctIndex);
+                    pollsJson.append(JsonUtil.buildObject(
+                            "pollId", p.id,
+                            "question", p.question,
+                            "options", p.options,
+                            "correct", correctLetter,
+                            "active", p.active,
+                            "revealed", p.revealed
+                    ));
+                }
+                pollsJson.append("]");
+
                 String response = String.format(
-                        "{\"students\":%s,\"totalStudents\":%d,\"totalVotes\":%d,\"pollsCreated\":1,\"currentPoll\":%s}",
+                        "{\"students\":%s,\"totalStudents\":%d,\"totalVotes\":%d,\"pollsCreated\":%d,\"currentPoll\":%s,\"polls\":%s}",
                         studentsJson,
                         students.size(),
                         stats.totalVotes,
-                        buildCurrentPollJson(stats));
+                        pollManager.getPollHistory().size(),
+                        buildCurrentPollJson(stats),
+                        pollsJson.toString());
 
                 sendJson(exchange, 200, response);
 
@@ -1018,3 +1089,6 @@ public class HttpDashboard {
         }
     }
 }
+
+
+

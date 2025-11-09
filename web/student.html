@@ -580,13 +580,97 @@
                 showPoll(data);
               } else if (!data.active && currentPollId) {
                 console.log("Poll ended, showing waiting");
-                showWaiting();
+                // Check if answer was revealed before showing waiting
+                checkForRevealedAnswer();
               }
             })
             .catch((error) => {
               console.error("Polling error:", error);
             });
+
+          // Also check for revealed answers if we're in submitted state
+          if (currentPollId && document.getElementById("submittedSection").classList.contains("hidden") === false) {
+            checkForRevealedAnswer();
+          }
         }, 2000); // Poll every 2 seconds
+      }
+
+      function checkForRevealedAnswer() {
+        fetch("/stats")
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Stats response:", data);
+            if (data.revealed && data.correct && data.pollId === currentPollId) {
+              console.log("Answer revealed:", data.correct);
+              showRevealedAnswer(data);
+            } else if (!data.active && !data.revealed) {
+              // Poll ended but not revealed yet - stay in submitted state
+              console.log("Poll ended, waiting for reveal");
+            } else if (!data.pollId || data.pollId !== currentPollId) {
+              // Different poll or no poll - go back to waiting
+              showWaiting();
+            }
+          })
+          .catch((error) => {
+            console.error("Error checking stats:", error);
+          });
+      }
+
+      function showRevealedAnswer(statsData) {
+        // Update submitted section to show the revealed answer
+        const submittedSection = document.getElementById("submittedSection");
+
+        submittedSection.innerHTML = `
+          <div class="mb-6 relative">
+            <div class="absolute inset-0 flex items-center justify-center">
+              <div class="w-32 h-32 bg-emerald-400/20 rounded-full animate-pulse-custom"></div>
+            </div>
+            <svg class="w-24 h-24 mx-auto text-emerald-400 relative z-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+          </div>
+          <h2 class="text-2xl font-semibold text-white mb-2">Answer Revealed!</h2>
+          <div class="glass-light rounded-xl px-6 py-4 mb-4 border-l-4 border-emerald-400">
+            <p class="text-white/70 text-sm mb-2">Correct Answer:</p>
+            <p class="text-emerald-400 text-3xl font-bold">${statsData.correct}</p>
+          </div>
+          <div class="text-white/70 text-sm">
+            <p class="mb-2">Results:</p>
+            ${generateResultsBars(statsData)}
+          </div>
+        `;
+
+        submittedSection.classList.remove("hidden");
+        updateStatus("Answer revealed!", "connected");
+
+        // After 5 seconds, go back to waiting
+        setTimeout(() => {
+          showWaiting();
+        }, 10000);
+      }
+
+      function generateResultsBars(statsData) {
+        let html = '<div class="space-y-2">';
+        for (let i = 0; i < statsData.options.length; i++) {
+          const letter = String.fromCharCode(65 + i);
+          const count = statsData.counts[i] || 0;
+          const percentage = statsData.percentages[i] || 0;
+          const isCorrect = statsData.correct === letter;
+
+          html += `
+            <div class="glass-light rounded-lg px-3 py-2 ${isCorrect ? 'border border-emerald-400/50 bg-emerald-500/10' : ''}">
+              <div class="flex justify-between items-center mb-1">
+                <span class="text-white/90 text-sm font-medium">${letter}. ${statsData.options[i]}</span>
+                <span class="text-white/70 text-xs">${count} vote${count !== 1 ? 's' : ''}</span>
+              </div>
+              <div class="h-2 bg-white/10 rounded-full overflow-hidden">
+                <div class="h-full ${isCorrect ? 'bg-emerald-400' : 'bg-sky-400'} rounded-full transition-all duration-500" style="width: ${percentage}%"></div>
+              </div>
+            </div>
+          `;
+        }
+        html += '</div>';
+        return html;
       }
 
       function showPoll(pollData) {

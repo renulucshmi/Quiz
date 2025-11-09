@@ -2,6 +2,8 @@ package server;
 
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 import server.Models.Poll;
 import server.Models.PollStats;
 
@@ -17,17 +19,39 @@ public class PollManager {
     // Poll ID counter
     private final AtomicInteger pollIdCounter = new AtomicInteger(1);
     
+    // History of all polls created (most recent at end)
+    private final CopyOnWriteArrayList<Poll> pollHistory = new CopyOnWriteArrayList<>();
+
     /**
      * Create a new poll (but don't start it yet).
+     * Sets as current poll automatically.
      */
     public Poll createPoll(String question, String[] options, int correctIndex, int timeoutSeconds) {
         String pollId = "poll" + pollIdCounter.getAndIncrement();
         Poll poll = new Poll(pollId, question, options, correctIndex, timeoutSeconds);
-        currentPoll.set(poll);
+        pollHistory.add(poll); // track history
+        currentPoll.set(poll); // Auto-select as current
         System.out.println("[PollManager] Poll created: " + pollId + " - " + question);
         return poll;
     }
-    
+
+    /**
+     * Select a poll to be the current active poll (by poll ID).
+     * This allows instructor to switch between polls.
+     * Returns the selected poll, or null if not found.
+     */
+    public Poll selectPoll(String pollId) {
+        for (Poll poll : pollHistory) {
+            if (poll.id.equals(pollId)) {
+                currentPoll.set(poll);
+                System.out.println("[PollManager] Poll selected/switched to: " + pollId);
+                return poll;
+            }
+        }
+        System.out.println("[PollManager] Poll not found: " + pollId);
+        return null;
+    }
+
     /**
      * Start the current poll (make it active).
      */
@@ -127,5 +151,12 @@ public class PollManager {
     public boolean hasActivePoll() {
         Poll poll = currentPoll.get();
         return poll != null && poll.active;
+    }
+
+    /**
+     * Return immutable snapshot list of all polls created.
+     */
+    public List<Poll> getPollHistory() {
+        return java.util.Collections.unmodifiableList(pollHistory);
     }
 }

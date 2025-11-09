@@ -45,9 +45,9 @@ function renderPollData(data) {
   const noPoll = document.getElementById("no-poll");
   const pollContent = document.getElementById("poll-content");
 
-  // Check if there's an active poll
-  if (!data.active && !data.question) {
-    // No poll
+  // Only show poll if it's ACTIVE (not just exists)
+  if (!data.active) {
+    // No active poll
     noPoll.classList.remove("hidden");
     pollContent.classList.add("hidden");
     return;
