@@ -889,7 +889,14 @@ public class HttpDashboard {
                 String name = data.get("name");
                 String message = data.get("message");
 
-                if (name == null || !students.containsKey(name)) {
+                // Allow instructor or any student to send messages
+                if (name == null || name.trim().isEmpty()) {
+                    sendError(exchange, 401, "Not logged in");
+                    return;
+                }
+
+                // Only check if student is logged in if they're not the instructor
+                if (!name.equals("Instructor") && !students.containsKey(name)) {
                     sendError(exchange, 401, "Not logged in");
                     return;
                 }
