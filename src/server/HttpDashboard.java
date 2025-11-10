@@ -1927,6 +1927,23 @@ public class HttpDashboard {
                 return;
             }
             
+            // Get query parameters to check for studentName
+            String query = exchange.getRequestURI().getQuery();
+            String studentName = null;
+            if (query != null) {
+                String[] params = query.split("&");
+                for (String param : params) {
+                    String[] keyValue = param.split("=");
+                    if (keyValue.length == 2 && "studentName".equals(keyValue[0])) {
+                        try {
+                            studentName = java.net.URLDecoder.decode(keyValue[1], "UTF-8");
+                        } catch (Exception e) {
+                            e.printStackTrace();
+                        }
+                    }
+                }
+            }
+            
             QuestionBank.Question current = runtime.getCurrentQuestion();
             Map<String, Integer> counts = runtime.getCurrentQuestionCounts();
             
@@ -1941,6 +1958,12 @@ public class HttpDashboard {
             json.append("\"revealed\":").append(runtime.isCurrentQuestionRevealed()).append(",");
             json.append("\"participantCount\":").append(runtime.getParticipantCount()).append(",");
             json.append("\"responseCount\":").append(responseCount).append(",");
+            
+            // Include student's score if studentName is provided
+            if (studentName != null && !studentName.isEmpty()) {
+                int studentScore = runtime.getStudentScore(studentName);
+                json.append("\"studentScore\":").append(studentScore).append(",");
+            }
             
             if (current != null) {
                 json.append("\"currentQuestion\":{");
