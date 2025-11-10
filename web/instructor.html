@@ -795,7 +795,7 @@
             Clear Chat
           </button>
           <button class="btn btn-primary" onclick="openChatWindow()">
-            Open Chat Room
+            Join Chat Room
           </button>
         </div>
       </div>
@@ -1270,7 +1270,19 @@
       }
 
       function openChatWindow() {
-        window.open("chat.html", "ChatRoom", "width=900,height=700");
+        // Store instructor name in localStorage for auto-login
+        localStorage.setItem("chatStudentName", "Instructor");
+
+        // Open chat in new window
+        const chatWindow = window.open(
+          "chat.html",
+          "ChatRoom",
+          "width=900,height=700"
+        );
+
+        if (!chatWindow) {
+          showAlert("Please allow popups to open the chat window", "error");
+        }
       }
 
       function updateChatStatus() {
