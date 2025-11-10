@@ -29,6 +29,10 @@ public class HttpDashboard {
     private final int port;
     private final ConcurrentHashMap<String, Student> students;
 
+    // Add assignment components
+    private final AssignmentManager assignmentManager;
+    private final AssignmentWebSocketNotifier assignmentNotifier;
+
     // Track web-based students separately
     private final ConcurrentHashMap<String, String> webStudents = new ConcurrentHashMap<>();
 
@@ -39,6 +43,10 @@ public class HttpDashboard {
         this.chatManager = chatManager;
         this.qaManager = qaManager;
         this.students = students;
+        // initialize assignment manager and notifier
+        this.assignmentManager = new AssignmentManager(java.nio.file.Paths.get("data/uploads"));
+        this.assignmentNotifier = new AssignmentWebSocketNotifier(8081);
+        new Thread(this.assignmentNotifier, "AssignmentWS").start();
         this.server = HttpServer.create(new InetSocketAddress(port), 0);
 
         // Register API handlers FIRST (before static file handler)
@@ -70,6 +78,14 @@ public class HttpDashboard {
         server.createContext("/qa/student", new QAStudentHandler());
         System.out.println("[HttpDashboard] Q&A endpoints registered");
 
+        // Assignment endpoints
+        server.createContext("/assignment/create", new AssignmentCreateHandler());
+        server.createContext("/assignment/list", new AssignmentListHandler());
+        server.createContext("/assignment/uploads", new AssignmentUploadsHandler());
+        server.createContext("/assignment/upload", new AssignmentUploadHttpHandler());
+        server.createContext("/assignment/download", new AssignmentDownloadHandler());
+        System.out.println("[HttpDashboard] Assignment endpoints registered");
+
         // Stats endpoint
         server.createContext("/stats", new StatsHandler());
 
@@ -94,6 +110,7 @@ public class HttpDashboard {
     public void stop() {
         server.stop(0);
         System.out.println("[HttpDashboard] Dashboard server stopped");
+        try { assignmentNotifier.stop(); } catch (Exception ignored) {}
     }
 
     /**
@@ -104,6 +121,8 @@ public class HttpDashboard {
         public void handle(HttpExchange exchange) throws IOException {
             // CORS headers
             exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
+            exchange.getResponseHeaders().add("Access-Control-Allow-Headers", "Content-Type");
             exchange.getResponseHeaders().add("Content-Type", "application/json");
 
             try {
@@ -1351,6 +1370,167 @@ public class HttpDashboard {
                 System.err.println("[QAStudentHandler] Error: " + e.getMessage());
                 e.printStackTrace();
                 sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+
+    // ==================== Assignment Handlers ====================
+    private class AssignmentCreateHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) { exchange.sendResponseHeaders(204, -1); return; }
+            if (!"POST".equals(exchange.getRequestMethod())) { sendError(exchange, 405, "Method not allowed"); return; }
+            try {
+                String body = readBody(exchange);
+                java.util.Map<String, String> data = JsonUtil.parseObject(body);
+                String title = data.get("title");
+                String description = data.get("description");
+                String dueAtStr = data.get("dueAt"); // ISO-8601 or epoch millis
+                java.time.Instant dueAt = null;
+                if (dueAtStr != null && !dueAtStr.isEmpty()) {
+                    try {
+                        if (dueAtStr.matches("\\d+")) dueAt = java.time.Instant.ofEpochMilli(Long.parseLong(dueAtStr));
+                        else dueAt = java.time.Instant.parse(dueAtStr);
+                    } catch (Exception ignored) {}
+                }
+                if (title == null || title.trim().isEmpty()) { sendError(exchange, 400, "Title required"); return; }
+                Assignment a = assignmentManager.createAssignment(title.trim(), description, dueAt);
+                // notify open
+                assignmentNotifier.broadcast(JsonUtil.buildObject(
+                        "type", "assignment_created",
+                        "assignmentId", a.id,
+                        "title", a.title,
+                        "description", a.description,
+                        "createdAt", a.createdAt.toString(),
+                        "dueAt", a.dueAt != null ? a.dueAt.toString() : null
+                ));
+                sendJson(exchange, 200, JsonUtil.buildObject("success", true, "assignmentId", a.id));
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+
+    private class AssignmentListHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) { exchange.sendResponseHeaders(204, -1); return; }
+            if (!"GET".equals(exchange.getRequestMethod())) { sendError(exchange, 405, "Method not allowed"); return; }
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"assignments\":[");
+            boolean first = true;
+            for (Assignment a : assignmentManager.listAssignments()) {
+                if (!first) sb.append(",");
+                first = false;
+                sb.append(JsonUtil.buildObject(
+                        "assignmentId", a.id,
+                        "title", a.title,
+                        "description", a.description,
+                        "createdAt", a.createdAt.toString(),
+                        "dueAt", a.dueAt != null ? a.dueAt.toString() : null
+                ));
+            }
+            sb.append("]}");
+            sendJson(exchange, 200, sb.toString());
+        }
+    }
+
+    private class AssignmentUploadsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) { exchange.sendResponseHeaders(204, -1); return; }
+            if (!"GET".equals(exchange.getRequestMethod())) { sendError(exchange, 405, "Method not allowed"); return; }
+            String query = exchange.getRequestURI().getQuery();
+            String assignmentId = getQueryParam(query, "id");
+            if (assignmentId == null) { sendError(exchange, 400, "Assignment id required"); return; }
+            java.util.List<AssignmentManager.UploadRecord> list = assignmentManager.getUploads(assignmentId);
+            StringBuilder sb = new StringBuilder();
+            sb.append("{\"uploads\":[");
+            for (int i=0;i<list.size();i++) {
+                if (i>0) sb.append(",");
+                AssignmentManager.UploadRecord r = list.get(i);
+                String storedName = r.storedPath.getFileName().toString();
+                sb.append(JsonUtil.buildObject(
+                        "studentName", r.studentName,
+                        "filename", r.originalFilename,
+                        "size", r.size,
+                        "storedName", storedName,
+                        "uploadedAt", r.uploadedAt.toString()
+                ));
+            }
+            sb.append("]}");
+            sendJson(exchange, 200, sb.toString());
+        }
+    }
+
+    private class AssignmentUploadHttpHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+            if ("OPTIONS".equals(exchange.getRequestMethod())) { exchange.sendResponseHeaders(204, -1); return; }
+            if (!"POST".equals(exchange.getRequestMethod())) { sendError(exchange, 405, "Method not allowed"); return; }
+            try {
+                String query = exchange.getRequestURI().getQuery();
+                String assignmentId = getQueryParam(query, "id");
+                String studentName = getQueryParam(query, "student");
+                String filename = getQueryParam(query, "filename");
+                if (assignmentId == null || studentName == null || filename == null) {
+                    sendError(exchange, 400, "Missing id, student or filename");
+                    return;
+                }
+                byte[] data = exchange.getRequestBody().readAllBytes();
+                AssignmentManager.UploadRecord rec = assignmentManager.recordUpload(assignmentId, studentName, filename, data);
+                if (assignmentNotifier != null) {
+                    assignmentNotifier.broadcast(JsonUtil.buildObject(
+                            "type", "assignment_upload",
+                            "assignmentId", assignmentId,
+                            "studentName", studentName,
+                            "filename", filename,
+                            "size", rec.size,
+                            "uploadedAt", rec.uploadedAt.toString()
+                    ));
+                }
+                sendJson(exchange, 200, JsonUtil.buildObject("success", true, "size", rec.size));
+            } catch (Exception e) {
+                sendError(exchange, 500, "Upload failed: " + e.getMessage());
+            }
+        }
+    }
+
+    private class AssignmentDownloadHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            // allow GET only
+            if (!"GET".equals(exchange.getRequestMethod())) { sendError(exchange, 405, "Method not allowed"); return; }
+            try {
+                String query = exchange.getRequestURI().getQuery();
+                String assignmentId = getQueryParam(query, "id");
+                String storedName = getQueryParam(query, "file");
+                if (assignmentId == null || storedName == null) { sendError(exchange, 400, "Missing id or file"); return; }
+                java.util.List<AssignmentManager.UploadRecord> list = assignmentManager.getUploads(assignmentId);
+                AssignmentManager.UploadRecord rec = null;
+                for (AssignmentManager.UploadRecord r : list) {
+                    if (r.storedPath.getFileName().toString().equals(storedName)) { rec = r; break; }
+                }
+                if (rec == null) { sendError(exchange, 404, "File not found"); return; }
+                java.nio.file.Path p = rec.storedPath;
+                if (!java.nio.file.Files.exists(p)) { sendError(exchange, 410, "File has been removed"); return; }
+                // set headers
+                exchange.getResponseHeaders().add("Content-Type", "application/octet-stream");
+                String safeName = rec.originalFilename.replaceAll("[\\\\\"\r\n]", "_");
+                exchange.getResponseHeaders().add("Content-Disposition", "attachment; filename=\""+safeName+"\"");
+                long len = java.nio.file.Files.size(p);
+                exchange.sendResponseHeaders(200, len);
+                try (OutputStream os = exchange.getResponseBody()) {
+                    java.nio.file.Files.copy(p, os);
+                }
+            } catch (Exception e) {
+                String msg = e.getMessage();
+                if (msg == null) msg = "error";
+                sendError(exchange, 500, msg);
             }
         }
     }

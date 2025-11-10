@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Assignments</title>
+  <style>
+    body{font-family:system-ui, sans-serif;background:#0f172a;color:#e2e8f0;margin:0;padding:24px}
+    h1{margin:0 0 12px}
+    .card{background:#111827;border:1px solid #1f2937;border-radius:12px;padding:16px;margin-bottom:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap}
+    input,button{padding:10px 12px;border-radius:8px;border:1px solid #334155;background:#0b1324;color:#e2e8f0}
+    button{background:#2563eb;border-color:#2563eb;cursor:pointer}
+    table{width:100%;border-collapse:collapse;margin-top:12px}
+    th,td{padding:8px;border-bottom:1px solid #1f2937;text-align:left}
+    .pill{display:inline-block;padding:2px 8px;border-radius:12px;background:#0b1324;border:1px solid #1f2937;font-size:12px}
+    .ok{color:#34d399;border-color:#065f46}
+  </style>
+</head>
+<body>
+  <h1>Assignments</h1>
+  <div class="card">
+    <h3>Create Assignment</h3>
+    <div class="row">
+      <input id="title" placeholder="Title" />
+      <input id="desc" placeholder="Description (optional)" style="min-width:300px" />
+      <input id="due" placeholder="Due (ISO or epoch ms) optional" />
+      <button onclick="createAssignment()">Create</button>
+    </div>
+    <div id="createStatus" class="pill" style="display:none"></div>
+  </div>
+
+  <div class="card">
+    <h3>Existing Assignments</h3>
+    <button onclick="loadAssignments()">Refresh</button>
+    <table id="tbl">
+      <thead><tr><th>ID</th><th>Title</th><th>Description</th><th>Created</th><th>Due</th><th>Uploads</th></tr></thead>
+      <tbody></tbody>
+    </table>
+    <div id="uploadsSection" style="display:none; margin-top:12px;">
+      <h4 style="margin:0 0 8px">Uploads for <span id="uploadsAssignment"></span></h4>
+      <table style="width:100%; border-collapse:collapse; font-size:13px;">
+        <thead><tr><th style="text-align:left;padding:6px">Student</th><th style="text-align:left;padding:6px">File</th><th style="text-align:left;padding:6px">Size</th><th style="text-align:left;padding:6px">Uploaded</th><th style="text-align:left;padding:6px">Action</th></tr></thead>
+        <tbody id="uploadsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3>WebSocket Notifications</h3>
+    <div id="wsStatus" class="pill">WS: disconnected</div>
+    <div id="log" style="margin-top:8px;font-family:ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;font-size:12px;white-space:pre-wrap"></div>
+  </div>
+
+<script>
+async function createAssignment(){
+  const title=document.getElementById('title').value.trim();
+  const description=document.getElementById('desc').value.trim();
+  const dueAt=document.getElementById('due').value.trim();
+  if(!title){return}
+  const res=await fetch('/assignment/create',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,description,dueAt})});
+  const data=await res.json();
+  const el=document.getElementById('createStatus');
+  el.style.display='inline-block';
+  el.textContent=data.success?`Created ${data.assignmentId}`:(data.error||'error');
+  el.className='pill '+(data.success?'ok':'');
+  loadAssignments();
+}
+
+async function loadAssignments(){
+  const res=await fetch('/assignment/list');
+  const data=await res.json();
+  const tbody=document.querySelector('#tbl tbody');
+  tbody.innerHTML='';
+  (data.assignments||[]).forEach(a=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${a.assignmentId}</td><td>${esc(a.title)}</td><td>${esc(a.description||'')}</td><td>${a.createdAt}</td><td>${a.dueAt||''}</td><td><button onclick=showUploads('${a.assignmentId}')>View</button></td>`;
+    tbody.appendChild(tr);
+  })
+}
+
+async function showUploads(id){
+  const res=await fetch('/assignment/uploads?id='+encodeURIComponent(id));
+  const data=await res.json();
+  const body=document.getElementById('uploadsBody');
+  document.getElementById('uploadsAssignment').textContent=id;
+  body.innerHTML='';
+  (data.uploads||[]).forEach(u=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td style='padding:6px'>${esc(u.studentName)}</td><td style='padding:6px'>${esc(u.filename)}</td><td style='padding:6px'>${formatBytes(u.size)}</td><td style='padding:6px'>${new Date(u.uploadedAt).toLocaleString()}</td><td style='padding:6px'><a href='/assignment/download?id=${encodeURIComponent(id)}&file=${encodeURIComponent(u.storedName)}'>Download</a></td>`;
+    body.appendChild(tr);
+  });
+  document.getElementById('uploadsSection').style.display='block';
+}
+
+function formatBytes(b){const u=['B','KB','MB','GB'];if(!b) return '0 B';const i=Math.floor(Math.log(b)/Math.log(1024));return (b/Math.pow(1024,i)).toFixed(1)+' '+u[i];}
+
+function esc(s){return (s||'').replace(/[&<>"']/g, m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]))}
+
+function connectWS(){
+  const ws = new WebSocket('ws://'+location.hostname+':8081/assignments');
+  const status = document.getElementById('wsStatus');
+  const log = document.getElementById('log');
+  ws.onopen = ()=>{ status.textContent='WS: connected'; status.className='pill ok'; };
+  ws.onclose = ()=>{ status.textContent='WS: disconnected'; status.className='pill'; setTimeout(connectWS, 2000); };
+  ws.onmessage = (ev)=>{ try{ const o=JSON.parse(ev.data); const div=document.createElement('div'); div.style.cssText='padding:6px 8px;margin:4px 0;background:#1e293b;border:1px solid #334155;border-radius:8px;font-size:12px;'; if(o.type==='assignment_created'){ div.innerHTML=`<strong>New:</strong> ${esc(o.assignmentId)} – ${esc(o.title)}`; } else if(o.type==='assignment_upload'){ div.innerHTML=`<strong>Upload:</strong> ${esc(o.studentName)} → ${esc(o.assignmentId)} (${esc(o.filename)})`; } else { div.textContent=ev.data; } log.appendChild(div); log.scrollTop=log.scrollHeight; }catch(e){ const div=document.createElement('div'); div.textContent=ev.data; log.appendChild(div);} };
+}
+
+loadAssignments();
+connectWS();
+</script>
+</body>
+</html>

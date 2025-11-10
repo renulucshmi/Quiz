@@ -392,6 +392,89 @@
             <span>Ask</span>
           </button>
         </div>
+
+        <!-- Assignments Section -->
+        <div class="mt-4 glass-light rounded-xl p-4 border border-white/30">
+          <h2 class="text-white/90 font-semibold mb-3 flex items-center gap-2">
+            <svg
+              class="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            Assignments
+          </h2>
+          <div class="space-y-2">
+            <div
+              id="assignmentList"
+              class="space-y-2 text-sm text-white/80 max-h-40 overflow-y-auto"
+            ></div>
+            <div class="mt-2">
+              <label
+                class="block text-white/70 text-xs mb-1"
+                for="uploadAssignmentSelect"
+              >
+                Select Assignment
+              </label>
+              <select
+                id="uploadAssignmentSelect"
+                class="w-full rounded-lg bg-white/10 text-white px-3 py-2 text-sm border border-white/30 focus:outline-none"
+              >
+                <!-- Options will be populated by JavaScript -->
+              </select>
+            </div>
+            <div class="mt-2">
+              <label class="block text-white/70 text-xs mb-1" for="uploadFileInput"
+                >File</label
+              >
+              <input
+                type="file"
+                id="uploadFileInput"
+                class="w-full text-white text-xs"
+              />
+            </div>
+            <button
+              onclick="uploadAssignmentFile()"
+              class="w-full btn-ripple bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
+            >
+              <svg
+                class="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M4 4v16h16M4 4l8 8"
+                />
+              </svg>
+              <span>Upload</span>
+            </button>
+            <div
+              id="uploadStatus"
+              class="text-xs text-white/70 mt-1"
+            ></div>
+            <div
+              id="assignmentWsStatus"
+              class="text-xs text-white/60 mt-2"
+            >
+              WS: connecting...
+            </div>
+            <div
+              id="assignmentWsLog"
+              class="mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"
+            ></div>
+          </div>
+        </div>
       </div>
 
       <!-- Waiting Section -->
@@ -510,6 +593,7 @@
       let studentName = "";
       let currentPollId = null;
       let selectedChoice = null;
+      let assignmentWS = null;
 
       function showAlert(message, type) {
         const alert = document.getElementById("alert");
@@ -841,6 +925,133 @@
         document.getElementById("submitBtn").disabled = false;
         updateStatus("Waiting for next poll...", "waiting");
       }
+
+      function initAssignmentsUI() {
+        fetch("/assignment/list")
+          .then((r) => r.json())
+          .then((data) => {
+            const listDiv = document.getElementById("assignmentList");
+            const sel = document.getElementById("uploadAssignmentSelect");
+            sel.innerHTML = "";
+            listDiv.innerHTML =
+              (data.assignments || []).map((a) => {
+                return `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10'>
+                  <div class='flex-1'>
+                    <div class='font-semibold text-white/90 text-xs'>${a.assignmentId}: ${escapeHtml(
+                      a.title
+                    )}</div>
+                    <div class='text-[11px] text-white/50'>${
+                      a.description ? escapeHtml(a.description) : ""
+                    }</div>
+                    <div class='text-[10px] text-white/40'>Created ${a.createdAt}${
+                  a.dueAt ? ` · Due ${a.dueAt}` : ""
+                }</div>
+                  </div>
+                </div>`;
+              }).join("") ||
+              '<div class="text-white/50 text-xs">No assignments yet</div>';
+            (data.assignments || []).forEach((a) => {
+              const opt = document.createElement("option");
+              opt.value = a.assignmentId;
+              opt.textContent = `${a.assignmentId} - ${a.title}`;
+              sel.appendChild(opt);
+            });
+          });
+        connectAssignmentWS();
+      }
+
+      function uploadAssignmentFile() {
+        const sel = document.getElementById("uploadAssignmentSelect");
+        const fileInput = document.getElementById("uploadFileInput");
+        const status = document.getElementById("uploadStatus");
+        if (!sel.value) {
+          status.textContent = "Select an assignment";
+          return;
+        }
+        if (!fileInput.files || fileInput.files.length === 0) {
+          status.textContent = "Choose a file";
+          return;
+        }
+        if (!studentName) {
+          status.textContent = "Connect first";
+          return;
+        }
+        const file = fileInput.files[0];
+        status.textContent = "Uploading " + file.name + "...";
+        fetch(
+          `/assignment/upload?id=${encodeURIComponent(
+            sel.value
+          )}&student=${encodeURIComponent(
+            studentName
+          )}&filename=${encodeURIComponent(file.name)}`,
+          {
+            method: "POST",
+            body: file,
+          }
+        )
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success) {
+              status.textContent = "Upload complete (" + d.size + " bytes)";
+              fileInput.value = "";
+            } else {
+              status.textContent = "Upload failed: " + (d.error || "error");
+            }
+          })
+          .catch((e) => {
+            status.textContent = "Error: " + e.message;
+          });
+      }
+
+      function connectAssignmentWS() {
+        const wsStatus = document.getElementById("assignmentWsStatus");
+        const log = document.getElementById("assignmentWsLog");
+        try {
+          assignmentWS = new WebSocket("ws://" + location.hostname + ":8081/assignments");
+          assignmentWS.onopen = () => {
+            wsStatus.textContent = "WS: connected";
+          };
+          assignmentWS.onclose = () => {
+            wsStatus.textContent = "WS: disconnected (retrying...)";
+            setTimeout(connectAssignmentWS, 2000);
+          };
+          assignmentWS.onmessage = (ev) => {
+            try {
+              const o = JSON.parse(ev.data);
+              log.textContent += (log.textContent ? "\n" : "") + o.type + ": " + (o.assignmentId || "") + (o.filename ? " · " + o.filename : "");
+            } catch {
+              log.textContent += (log.textContent ? "\n" : "") + ev.data;
+            }
+            log.scrollTop = log.scrollHeight;
+          };
+        } catch (e) {
+          wsStatus.textContent = "WS error";
+        }
+      }
+
+      function escapeHtml(s) {
+        return (s || "").replace(/[&<>"']/g, (m) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          }[m];
+        });
+      }
+
+      // Extend connect success to initialize assignments
+      const originalConnectToServer = connectToServer;
+      connectToServer = function () {
+        originalConnectToServer();
+        setTimeout(() => {
+          if (studentName) initAssignmentsUI();
+        }, 800);
+      };
+
+      // If already connected (unlikely on load), init assignments
+      if (studentName) initAssignmentsUI();
     </script>
   </body>
 </html>
