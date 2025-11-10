@@ -1,0 +1,54 @@
+{
+  "questions": [
+    {
+      "id": "q-b8ab4e7d",
+      "text": "Who painted the Mona Lisa?",
+      "options": ["Vincent van Gogh","Pablo Picasso","Leonardo da Vinci","Michelangelo"],
+      "correctIndex": 2,
+      "tags": ["Art","History"],
+      "difficulty": "MEDIUM",
+      "timeLimitSeconds": 30,
+      "createdAt": 1762795499500
+    },
+    {
+      "id": "q-649dc351",
+      "text": "What is the largest planet in our solar system?",
+      "options": ["Saturn","Jupiter","Neptune","Earth"],
+      "correctIndex": 1,
+      "tags": ["Science","Astronomy"],
+      "difficulty": "EASY",
+      "timeLimitSeconds": 25,
+      "createdAt": 1762795499500
+    },
+    {
+      "id": "q-e04b9603",
+      "text": "What is the capital of France?",
+      "options": ["London","Berlin","Paris","Madrid"],
+      "correctIndex": 2,
+      "tags": ["Geography","Europe"],
+      "difficulty": "EASY",
+      "timeLimitSeconds": 20,
+      "createdAt": 1762795499500
+    },
+    {
+      "id": "q-30a8259f",
+      "text": "What is the tallest mountain in the world?",
+      "options": ["Mount Kilimanjaro","Mount Everest","K2","Mount Fuji"],
+      "correctIndex": 1,
+      "tags": ["Geography","Mountains"],
+      "difficulty": "EASY",
+      "timeLimitSeconds": 30,
+      "createdAt": 1762795499498
+    },
+    {
+      "id": "q-22af74f4",
+      "text": "In which year did World War II end?",
+      "options": ["1943","1944","1945","1946"],
+      "correctIndex": 2,
+      "tags": ["History","WWII"],
+      "difficulty": "MEDIUM",
+      "timeLimitSeconds": 30,
+      "createdAt": 1762795499500
+    }
+  ]
+}
