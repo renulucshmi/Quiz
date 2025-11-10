@@ -28,6 +28,8 @@ public class MainServer {
     private final PollManager pollManager;
     private final ChatManager chatManager;
     private final QAManager qaManager;
+    private final QuestionBank questionBank;
+    private final QuizManager quizManager;
     private final HttpDashboard dashboard;
 
     // Thread-safe registry of connected students
@@ -42,7 +44,9 @@ public class MainServer {
         this.pollManager = new PollManager();
         this.chatManager = new ChatManager();
         this.qaManager = new QAManager();
-        this.dashboard = new HttpDashboard(HTTP_PORT, pollManager, chatManager, qaManager, students);
+        this.questionBank = new QuestionBank();
+        this.quizManager = new QuizManager();
+        this.dashboard = new HttpDashboard(HTTP_PORT, pollManager, chatManager, qaManager, questionBank, quizManager, students, handlers);
 
         System.out.println("╔════════════════════════════════════════════════════════════╗");
         System.out.println("║   Remote Classroom Polling System - Server Started       ║");

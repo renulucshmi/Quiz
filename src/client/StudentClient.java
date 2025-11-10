@@ -119,6 +119,15 @@ public class StudentClient {
                 case "chatCleared":
                     handleChatCleared();
                     break;
+                case "vote":
+                    handleVote(msg, json);
+                    break;
+                case "voteClosed":
+                    handleVoteClosed(msg);
+                    break;
+                case "quizReveal":
+                    handleQuizReveal(msg);
+                    break;
                 case "error":
                     handleError(msg);
                     break;
@@ -338,6 +347,78 @@ public class StudentClient {
         if (s.endsWith("\""))
             s = s.substring(0, s.length() - 1);
         return s;
+    }
+
+    /**
+     * Handle vote message from server.
+     */
+    private void handleVote(Map<String, String> msg, String rawJson) {
+        String voteId = msg.get("id");
+        String question = msg.get("question");
+        String allowRevote = msg.get("allowRevote");
+        String deadline = msg.get("deadline");
+
+        System.out.println("\n" + "═".repeat(60));
+        System.out.println("📅 DATE VOTING OPENED");
+        System.out.println("═".repeat(60));
+        System.out.println("Question: " + question);
+        if (deadline != null && !deadline.equals("null")) {
+            System.out.println("Deadline: " + deadline);
+        }
+        System.out.println();
+
+        // Extract options
+        String[] options = extractOptions(rawJson);
+        if (options != null) {
+            for (int i = 0; i < options.length; i++) {
+                System.out.println("  " + (char)('A' + i) + ") " + options[i]);
+            }
+        }
+
+        System.out.println("═".repeat(60));
+        if ("true".equals(allowRevote)) {
+            System.out.println("ℹ️  You can change your vote anytime before the deadline");
+        }
+        System.out.println();
+
+        // Note: Actual voting would happen through web interface or separate command
+        System.out.println("[Client] Vote received. Use web interface to cast your vote.");
+    }
+
+    /**
+     * Handle vote closed message.
+     */
+    private void handleVoteClosed(Map<String, String> msg) {
+        String voteId = msg.get("voteId");
+        
+        System.out.println("\n" + "═".repeat(60));
+        System.out.println("🔒 VOTING CLOSED");
+        System.out.println("═".repeat(60));
+        System.out.println("Vote ID: " + voteId);
+        System.out.println("Check the web interface for final results.");
+        System.out.println("═".repeat(60));
+        System.out.println();
+    }
+
+    /**
+     * Handle quiz reveal message.
+     */
+    private void handleQuizReveal(Map<String, String> msg) {
+        String quizId = msg.get("quizId");
+        String questionId = msg.get("questionId");
+        String correctIndexStr = msg.get("correctIndex");
+        
+        if (correctIndexStr != null) {
+            int correctIndex = Integer.parseInt(correctIndexStr);
+            char correctChoice = (char)('A' + correctIndex);
+            
+            System.out.println("\n" + "═".repeat(60));
+            System.out.println("✅ ANSWER REVEALED");
+            System.out.println("═".repeat(60));
+            System.out.println("Correct Answer: " + correctChoice);
+            System.out.println("═".repeat(60));
+            System.out.println();
+        }
     }
 
     /**

@@ -3,9 +3,9 @@ package server;
 import java.io.*;
 import java.net.Socket;
 import java.util.Map;
-import server.Models.Student;
-import server.Models.Poll;
 import server.Models.ChatMessage;
+import server.Models.Poll;
+import server.Models.Student;
 
 /**
  * Handles a single student client connection.
@@ -257,6 +257,33 @@ public class ClientHandler implements Runnable, ChatManager.ChatListener {
                     "type", "chatCleared",
                     "message", "Chat history has been cleared");
             out.println(json);
+        }
+    }
+
+    /**
+     * Send vote notification to client.
+     */
+    public void sendVote(String voteJson) {
+        if (out != null) {
+            out.println(voteJson);
+        }
+    }
+
+    /**
+     * Send vote closed notification to client.
+     */
+    public void sendVoteClosed(String voteClosedJson) {
+        if (out != null) {
+            out.println(voteClosedJson);
+        }
+    }
+
+    /**
+     * Send quiz reveal notification to client.
+     */
+    public void sendQuizReveal(String quizRevealJson) {
+        if (out != null) {
+            out.println(quizRevealJson);
         }
     }
 

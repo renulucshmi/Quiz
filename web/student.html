@@ -252,7 +252,7 @@
           </svg>
           <h1 class="text-3xl font-semibold text-white">Student Client</h1>
         </div>
-        <p class="text-sm text-white/70">Remote Classroom Polling System</p>
+        <p class="text-sm text-white/70">Remote Classroom Interaction System</p>
       </div>
 
       <!-- Status Banner -->
@@ -503,6 +503,38 @@
           ></span>
         </div>
       </div>
+
+      <!-- Score Display Section (for quiz mode) -->
+      <div id="scoreSection" class="hidden mt-4 animate-slideIn">
+        <div
+          class="glass-light rounded-xl px-4 py-3 border border-purple-400/50 bg-purple-500/10"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg
+                class="w-5 h-5 text-purple-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                />
+              </svg>
+              <span class="text-white/90 font-medium">Your Total Score</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="studentScore" class="text-2xl font-bold text-purple-300"
+                >0</span
+              >
+              <span class="text-white/60 text-sm">pts</span>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -510,6 +542,12 @@
       let studentName = "";
       let currentPollId = null;
       let selectedChoice = null;
+
+      // State tracking to prevent re-rendering
+      let currentQuizId = null;
+      let currentVoteId = null;
+      let currentQuestionId = null;
+      let currentRevealedState = false;
 
       function showAlert(message, type) {
         const alert = document.getElementById("alert");
@@ -663,24 +701,136 @@
       }
 
       function startPolling() {
-        console.log("Starting poll checking for student:", studentName);
+        console.log(
+          "Starting poll/quiz/vote checking for student:",
+          studentName
+        );
         setInterval(() => {
-          fetch(`/student/poll?name=${encodeURIComponent(studentName)}`)
-            .then((response) => response.json())
-            .then((data) => {
-              console.log("Poll response:", data);
-              if (data.active && data.pollId !== currentPollId) {
-                console.log("New poll detected, showing poll");
-                showPoll(data);
-              } else if (!data.active && currentPollId) {
-                console.log("Poll ended, showing waiting");
-                showWaiting();
-              }
-            })
-            .catch((error) => {
-              console.error("Polling error:", error);
-            });
+          // FIRST: Check for active quiz (new system)
+          checkForActiveQuiz();
+
+          // SECOND: Check for active vote (voting system)
+          checkForActiveVote();
+
+          // THIRD: Check for active poll (old system) - only if no quiz
+          checkForActivePoll();
         }, 2000); // Poll every 2 seconds
+      }
+
+      async function checkForActiveQuiz() {
+        try {
+          const response = await fetch("/api/quizzes");
+          const data = await response.json();
+
+          // Find running quiz
+          const runningQuiz = data.quizzes?.find((q) => q.status === "RUNNING");
+
+          if (runningQuiz) {
+            // Quiz is active, load and display it
+            await loadQuizQuestion(runningQuiz.id);
+          } else if (currentQuizId) {
+            // Quiz ended, clear state and show waiting
+            currentQuizId = null;
+            currentQuestionId = null;
+            showWaiting();
+          }
+        } catch (error) {
+          console.error("Error checking for quiz:", error);
+        }
+      }
+
+      async function loadQuizQuestion(quizId) {
+        try {
+          const response = await fetch(
+            `/api/quizzes/${quizId}/status?studentName=${encodeURIComponent(
+              studentName
+            )}`
+          );
+          const data = await response.json();
+
+          if (data.currentQuestion) {
+            // Re-render if quiz, question, or revealed state has changed
+            if (
+              currentQuizId !== quizId ||
+              currentQuestionId !== data.currentQuestion.id ||
+              currentRevealedState !== data.revealed
+            ) {
+              currentQuizId = quizId;
+              currentQuestionId = data.currentQuestion.id;
+              currentRevealedState = data.revealed;
+              showQuiz(quizId, data);
+            }
+
+            // Update score display if available
+            if (data.studentScore !== undefined) {
+              updateScoreDisplay(data.studentScore);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading quiz question:", error);
+        }
+      }
+
+      async function checkForActiveVote() {
+        // Only check for votes if no quiz is active
+        if (currentQuizId) {
+          // Quiz takes priority, skip vote check
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/votes");
+          const data = await response.json();
+
+          if (data.success && data.votes && data.votes.length > 0) {
+            // Find an open vote
+            const openVote = data.votes.find((v) => v.state === "OPEN");
+
+            if (openVote) {
+              // Only show if it's a different vote
+              if (currentVoteId !== openVote.id) {
+                currentVoteId = openVote.id;
+                console.log("Active vote found:", openVote.id);
+                showVote(openVote);
+              }
+            } else if (currentVoteId) {
+              // No open vote but we had one before - it must have closed
+              currentVoteId = null;
+              showWaiting();
+            }
+          } else if (currentVoteId) {
+            // No votes at all but we had one before
+            currentVoteId = null;
+            showWaiting();
+          }
+        } catch (error) {
+          console.error("Error checking for active vote:", error);
+        }
+      }
+
+      async function checkForActivePoll() {
+        // Only check for polls if no quiz or vote is active
+        if (currentQuizId || currentVoteId) {
+          // Quiz or vote takes priority, skip poll check
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `/student/poll?name=${encodeURIComponent(studentName)}`
+          );
+          const data = await response.json();
+
+          if (data.active && data.pollId !== currentPollId) {
+            console.log("New poll detected, showing poll");
+            showPoll(data);
+          } else if (!data.active && currentPollId) {
+            console.log("Poll ended, showing waiting");
+            showWaiting();
+          }
+        } catch (error) {
+          console.error("Polling error:", error);
+        }
       }
 
       function showPoll(pollData) {
@@ -693,6 +843,7 @@
         document.getElementById("waitingSection").classList.add("hidden");
         document.getElementById("submittedSection").classList.add("hidden");
         document.getElementById("pollSection").classList.remove("hidden");
+        document.getElementById("scoreSection").classList.add("hidden"); // Hide score for polls
 
         // Set question
         document.getElementById("pollQuestion").textContent = pollData.question;
@@ -750,6 +901,141 @@
 
         // Re-enable submit button
         document.getElementById("submitBtn").disabled = false;
+
+        // Mark as poll mode (not quiz)
+        document.getElementById("submitBtn").setAttribute("data-mode", "poll");
+      }
+
+      function showQuiz(quizId, quizData) {
+        console.log("showQuiz called with quiz:", quizId, quizData);
+
+        const q = quizData.currentQuestion;
+        const progress = `${quizData.currentIndex + 1}/${
+          quizData.totalQuestions
+        }`;
+
+        // Check if student already answered this question
+        const alreadyAnswered =
+          quizData.submissions &&
+          quizData.submissions[q.id] &&
+          quizData.submissions[q.id][studentName];
+
+        // Hide waiting and submitted, show poll section (reuse for quiz)
+        document.getElementById("waitingSection").classList.add("hidden");
+        document.getElementById("submittedSection").classList.add("hidden");
+        document.getElementById("pollSection").classList.remove("hidden");
+
+        // Show score section for quiz
+        document.getElementById("scoreSection").classList.remove("hidden");
+
+        // Set question with quiz progress
+        document.getElementById(
+          "pollQuestion"
+        ).innerHTML = `<span class="text-purple-300 text-sm font-bold">QUIZ ${progress}</span><br>${q.text}`;
+
+        const container = document.getElementById("optionsContainer");
+        container.innerHTML = "";
+
+        const letters = ["A", "B", "C", "D"];
+        q.options.forEach((opt, idx) => {
+          const choice = letters[idx];
+          const div = document.createElement("div");
+
+          let divClass =
+            "option-hover glass-light border rounded-xl px-4 py-3 text-white transition-all duration-300 ease-in-out flex items-center gap-3 group";
+
+          // Style based on state
+          if (alreadyAnswered) {
+            divClass += " cursor-not-allowed opacity-70";
+          } else {
+            divClass += " cursor-pointer hover:bg-white/20 border-white/30";
+          }
+
+          if (quizData.revealed) {
+            if (idx === q.correctIndex) {
+              divClass =
+                "glass-light border-2 border-emerald-400 bg-emerald-500/30 rounded-xl px-4 py-3 text-white flex items-center gap-3";
+            } else if (alreadyAnswered && choice === selectedChoice) {
+              divClass =
+                "glass-light border-2 border-rose-400 bg-rose-500/30 rounded-xl px-4 py-3 text-white flex items-center gap-3";
+            }
+          }
+
+          div.className = divClass;
+          div.setAttribute("role", "radio");
+          div.setAttribute("aria-checked", "false");
+          div.setAttribute("tabindex", alreadyAnswered ? "-1" : "0");
+
+          if (!alreadyAnswered && !quizData.revealed) {
+            div.onclick = () => selectOption(choice, div);
+            div.onkeydown = (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                selectOption(choice, div);
+              }
+            };
+          }
+
+          let iconHtml = "";
+          if (quizData.revealed && idx === q.correctIndex) {
+            iconHtml =
+              '<svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+          } else if (
+            quizData.revealed &&
+            alreadyAnswered &&
+            choice === selectedChoice
+          ) {
+            iconHtml =
+              '<svg class="w-5 h-5 text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+          } else {
+            iconHtml = `
+              <div class="w-5 h-5 rounded-full border-2 border-white/50 flex items-center justify-center transition-all duration-300 group-hover:border-purple-400">
+                <div class="w-0 h-0 rounded-full bg-purple-400 transition-all duration-300"></div>
+              </div>
+            `;
+          }
+
+          div.innerHTML = `
+            ${iconHtml}
+            <label class="flex-1 font-medium">${choice}. ${opt}</label>
+          `;
+          container.appendChild(div);
+        });
+
+        // Update submit button
+        const submitBtn = document.getElementById("submitBtn");
+        const submitBtnText = document.getElementById("submitBtnText");
+
+        if (alreadyAnswered && !quizData.revealed) {
+          submitBtn.disabled = true;
+          submitBtnText.textContent = "✓ Answer Submitted";
+          updateStatus("Waiting for instructor to reveal...", "waiting");
+        } else if (quizData.revealed) {
+          submitBtn.disabled = true;
+          submitBtnText.textContent = "Answer Revealed";
+          const correct = letters[q.correctIndex];
+          if (selectedChoice === correct) {
+            updateStatus("Correct Answer!", "connected");
+            // show small check icon in alerts when appropriate
+            showAlert(`Correct! The answer was ${correct}`, "success");
+          } else if (selectedChoice) {
+            updateStatus(`Incorrect. Correct was ${correct}`, "disconnected");
+            showAlert(
+              `Your answer: ${selectedChoice}, Correct: ${correct}`,
+              "error"
+            );
+          }
+        } else {
+          submitBtn.disabled = false;
+          submitBtnText.textContent = "Submit Answer";
+          updateStatus(`Quiz Active - Question ${progress}`, "active");
+          showAlert(`Quiz question ${progress} - Answer now!`, "info");
+        }
+
+        // Mark as quiz mode with quiz ID and question ID
+        submitBtn.setAttribute("data-mode", "quiz");
+        submitBtn.setAttribute("data-quiz-id", quizId);
+        submitBtn.setAttribute("data-question-id", q.id);
       }
 
       function selectOption(choice, element) {
@@ -791,55 +1077,246 @@
           return;
         }
 
-        // Show loading state
         const submitBtn = document.getElementById("submitBtn");
         const submitBtnText = document.getElementById("submitBtnText");
+        const mode = submitBtn.getAttribute("data-mode");
+
+        // Show loading state
         submitBtnText.innerHTML =
           '<div class="loading-spinner inline-block"></div>';
         submitBtn.disabled = true;
 
-        fetch("/student/answer", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            name: studentName,
-            pollId: currentPollId,
-            choice: selectedChoice,
-          }),
-        })
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.success) {
-              showAlert("Answer submitted successfully!", "success");
+        if (mode === "quiz") {
+          // Quiz submission
+          const quizId = submitBtn.getAttribute("data-quiz-id");
+          const questionId = submitBtn.getAttribute("data-question-id");
 
-              // Show submitted section with animation
-              setTimeout(() => {
-                document.getElementById("pollSection").classList.add("hidden");
-                document
-                  .getElementById("submittedSection")
-                  .classList.remove("hidden");
-                updateStatus("Waiting for results...", "waiting");
-              }, 500);
-            } else {
-              showAlert(data.message || "Failed to submit answer", "error");
+          fetch(`/api/quizzes/${quizId}/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              studentName: studentName,
+              questionId: questionId,
+              choice: selectedChoice,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Quiz answer submitted successfully!", "success");
+                submitBtnText.textContent = "✓ Answer Submitted";
+                updateStatus("Waiting for instructor to reveal...", "waiting");
+                // Don't re-enable button for quiz
+              } else {
+                showAlert(data.message || "Failed to submit answer", "error");
+                submitBtnText.textContent = "Submit Answer";
+                submitBtn.disabled = false;
+              }
+            })
+            .catch((error) => {
+              showAlert("Error submitting quiz answer", "error");
               submitBtnText.textContent = "Submit Answer";
               submitBtn.disabled = false;
-            }
+            });
+        } else if (mode === "vote") {
+          // Vote submission
+          const voteId = submitBtn.getAttribute("data-vote-id");
+
+          fetch(`/api/votes/${voteId}/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              studentName: studentName,
+              choice: selectedChoice,
+            }),
           })
-          .catch((error) => {
-            showAlert("Error submitting answer", "error");
-            submitBtnText.textContent = "Submit Answer";
-            submitBtn.disabled = false;
-          });
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Vote cast successfully!", "success");
+                submitBtnText.textContent = "✓ Vote Cast";
+                updateStatus("Vote submitted - Check results later", "waiting");
+
+                // For votes with revote enabled, keep the form active
+                const allowRevote = submitBtn.getAttribute("data-allow-revote");
+                if (allowRevote === "true") {
+                  setTimeout(() => {
+                    submitBtnText.textContent = "Update Vote";
+                    submitBtn.disabled = false;
+                  }, 2000);
+                } else {
+                  // For single vote, disable the button
+                  submitBtn.disabled = true;
+                }
+              } else {
+                showAlert(data.message || "Failed to cast vote", "error");
+                submitBtnText.textContent = "Cast Vote";
+                submitBtn.disabled = false;
+              }
+            })
+            .catch((error) => {
+              showAlert("Error casting vote", "error");
+              submitBtnText.textContent = "Cast Vote";
+              submitBtn.disabled = false;
+            });
+        } else {
+          // Poll submission (old system)
+          fetch("/student/answer", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: studentName,
+              pollId: currentPollId,
+              choice: selectedChoice,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Answer submitted successfully!", "success");
+
+                // Show submitted section with animation
+                setTimeout(() => {
+                  document
+                    .getElementById("pollSection")
+                    .classList.add("hidden");
+                  document
+                    .getElementById("submittedSection")
+                    .classList.remove("hidden");
+                  updateStatus("Waiting for results...", "waiting");
+                }, 500);
+              } else {
+                showAlert(data.message || "Failed to submit answer", "error");
+                submitBtnText.textContent = "Submit Answer";
+                submitBtn.disabled = false;
+              }
+            })
+            .catch((error) => {
+              showAlert("Error submitting answer", "error");
+              submitBtnText.textContent = "Submit Answer";
+              submitBtn.disabled = false;
+            });
+        }
+      }
+
+      function showVote(voteData) {
+        console.log("showVote called with data:", voteData);
+
+        // Hide waiting and submitted, show poll section (reuse for vote)
+        document.getElementById("waitingSection").classList.add("hidden");
+        document.getElementById("submittedSection").classList.add("hidden");
+        document.getElementById("pollSection").classList.remove("hidden");
+        document.getElementById("scoreSection").classList.add("hidden"); // Hide score for votes
+
+        // Set question with vote header
+        let questionHtml = `<span class="text-indigo-300 text-sm font-bold">📅 DATE VOTING</span><br>${voteData.question}`;
+        if (voteData.deadline && voteData.deadline !== "null") {
+          questionHtml += `<br><span class="text-sm text-purple-300">Deadline: ${voteData.deadline}</span>`;
+        }
+        document.getElementById("pollQuestion").innerHTML = questionHtml;
+
+        const container = document.getElementById("optionsContainer");
+        container.innerHTML = "";
+
+        const letters = ["A", "B", "C", "D"];
+        voteData.options.forEach((opt, idx) => {
+          const choice = letters[idx];
+          const div = document.createElement("div");
+
+          div.className =
+            "option-hover glass-light border rounded-xl px-4 py-3 text-white transition-all duration-300 ease-in-out flex items-center gap-3 group cursor-pointer hover:bg-white/20 border-white/30";
+
+          div.setAttribute("role", "radio");
+          div.setAttribute("aria-checked", "false");
+          div.setAttribute("tabindex", "0");
+
+          div.onclick = () => selectOption(choice, div);
+          div.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              selectOption(choice, div);
+            }
+          };
+
+          const iconHtml = `
+            <div class="w-5 h-5 rounded-full border-2 border-white/50 flex items-center justify-center transition-all duration-300 group-hover:border-purple-400">
+              <div class="w-0 h-0 rounded-full bg-sky-400 transition-all duration-300"></div>
+            </div>
+          `;
+
+          div.innerHTML = `
+            ${iconHtml}
+            <div class="flex-1">
+              <span class="font-semibold text-purple-300">${choice})</span>
+              <span class="ml-2">${opt}</span>
+            </div>
+          `;
+
+          container.appendChild(div);
+        });
+
+        // Enable submit button for vote
+        const submitBtn = document.getElementById("submitBtn");
+        const submitBtnText = document.getElementById("submitBtnText");
+        submitBtn.disabled = false;
+        submitBtnText.textContent = "Cast Vote";
+
+        if (voteData.allowRevote) {
+          updateStatus(
+            "Vote Active - You can change your vote anytime",
+            "active"
+          );
+          showAlert(
+            "Vote opened! You can change your vote before the deadline.",
+            "info"
+          );
+        } else {
+          updateStatus("Vote Active - Choose wisely, one vote only!", "active");
+          showAlert("Vote opened! Choose your preferred date.", "info");
+        }
+
+        // Mark as vote mode with vote ID and allowRevote flag
+        submitBtn.setAttribute("data-mode", "vote");
+        submitBtn.setAttribute("data-vote-id", voteData.id);
+        submitBtn.setAttribute(
+          "data-allow-revote",
+          voteData.allowRevote ? "true" : "false"
+        );
       }
 
       function showWaiting() {
         currentPollId = null;
+        currentQuizId = null;
+        currentVoteId = null;
+        currentQuestionId = null;
+        currentRevealedState = false;
         document.getElementById("pollSection").classList.add("hidden");
         document.getElementById("submittedSection").classList.add("hidden");
         document.getElementById("waitingSection").classList.remove("hidden");
+        document.getElementById("scoreSection").classList.add("hidden");
         document.getElementById("submitBtn").disabled = false;
         updateStatus("Waiting for next poll...", "waiting");
+      }
+
+      function updateScoreDisplay(score) {
+        const scoreElement = document.getElementById("studentScore");
+        const currentScore = parseInt(scoreElement.textContent) || 0;
+
+        // Animate score change if different
+        if (currentScore !== score) {
+          scoreElement.style.transform = "scale(1.3)";
+          scoreElement.style.color = "#c084fc"; // brighter purple
+
+          setTimeout(() => {
+            scoreElement.textContent = score;
+            setTimeout(() => {
+              scoreElement.style.transform = "scale(1)";
+              scoreElement.style.color = "#d8b4fe"; // back to purple-300
+            }, 100);
+          }, 200);
+        } else {
+          scoreElement.textContent = score;
+        }
       }
     </script>
   </body>

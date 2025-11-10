@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Builder - Remote Classroom</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      nav {
+        margin-top: 15px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      nav a {
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s;
+      }
+
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .builder-container {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: all 0.3s ease;
+      }
+
+      .panel:hover {
+        box-shadow: 0 8px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .panel h2 {
+        margin-top: 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #60a5fa;
+        color: white;
+      }
+
+      .panel h3 {
+        color: white;
+        margin: 15px 0 10px 0;
+      }
+
+      .form-group {
+        margin: 15px 0;
+      }
+
+      .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: white;
+      }
+
+      .form-group input,
+      .form-group textarea {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: white;
+        font-size: 1em;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input::placeholder,
+      .form-group textarea::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .form-group input:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #60a5fa;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      }
+
+      .form-row {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 15px;
+      }
+
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+
+      .btn-primary:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
+      }
+
+      .btn-small {
+        padding: 8px 16px;
+        font-size: 14px;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+
+      .btn-small:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      }
+
+      .btn-danger:hover {
+        box-shadow: 0 8px 20px rgba(244, 67, 54, 0.4);
+      }
+
+      .question-browser {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .question-item {
+        padding: 12px;
+        margin: 5px 0;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 6px;
+        cursor: pointer;
+        transition: all 0.2s;
+        color: white;
+      }
+
+      .question-item:hover {
+        background: rgba(96, 165, 250, 0.2);
+        border-color: #60a5fa;
+      }
+
+      .question-item.selected {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        color: white;
+        border-color: #10b981;
+      }
+
+      .question-item-text {
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+
+      .question-item-meta {
+        font-size: 12px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .question-item.selected .question-item-meta {
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .selected-questions {
+        max-height: 400px;
+        overflow-y: auto;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.1);
+      }
+
+      .selected-question {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px;
+        margin: 5px 0;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .selected-question-order {
+        font-weight: bold;
+        margin-right: 10px;
+        color: #60a5fa;
+      }
+
+      .selected-question-text {
+        flex: 1;
+        font-size: 14px;
+      }
+
+      .selected-question-actions {
+        display: flex;
+        gap: 5px;
+      }
+
+      .btn-icon {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(10px);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 5px 10px;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 12px;
+        transition: all 0.2s;
+      }
+
+      .btn-icon:hover {
+        background: rgba(255, 255, 255, 0.3);
+      }
+
+      .btn-icon.remove {
+        background: rgba(239, 68, 68, 0.3);
+        border-color: rgba(239, 68, 68, 0.5);
+      }
+
+      .btn-icon.remove:hover {
+        background: rgba(239, 68, 68, 0.5);
+      }
+
+      .quiz-list {
+        display: grid;
+        gap: 15px;
+        margin-top: 20px;
+      }
+
+      .quiz-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: all 0.3s;
+      }
+
+      .quiz-card:hover {
+        box-shadow: 0 8px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .quiz-card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .quiz-title {
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+      }
+
+      .quiz-status {
+        padding: 6px 14px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: bold;
+      }
+
+      .status-DRAFT {
+        background: rgba(251, 146, 60, 0.3);
+        color: #fdba74;
+        border: 1px solid rgba(251, 146, 60, 0.5);
+      }
+
+      .status-READY {
+        background: rgba(16, 185, 129, 0.3);
+        color: #6ee7b7;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+      }
+
+      .status-RUNNING {
+        background: rgba(59, 130, 246, 0.3);
+        color: #93c5fd;
+        border: 1px solid rgba(59, 130, 246, 0.5);
+      }
+
+      .status-ENDED {
+        background: rgba(156, 163, 175, 0.3);
+        color: #d1d5db;
+        border: 1px solid rgba(156, 163, 175, 0.5);
+      }
+
+      .quiz-description {
+        color: rgba(255, 255, 255, 0.8);
+        margin: 10px 0;
+      }
+
+      .quiz-meta {
+        font-size: 13px;
+        color: rgba(255, 255, 255, 0.7);
+        margin: 10px 0;
+      }
+
+      .quiz-actions {
+        display: flex;
+        gap: 10px;
+        margin-top: 15px;
+        padding-top: 15px;
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+          "
+        >
+          <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"
+            />
+          </svg>
+          Quiz Builder
+        </h1>
+        <nav>
+          <a href="index.html">Home</a>
+          <a href="mcq-batch.html">Create MCQs</a>
+          <a href="question-bank.html">Question Bank</a>
+          <a href="quiz-control.html">Quiz Control</a>
+          <a href="instructor.html">Instructor</a>
+        </nav>
+      </header>
+
+      <div class="content">
+        <!-- Quiz Creation Section -->
+        <div class="builder-container">
+          <!-- Left Panel: Quiz Details -->
+          <div class="panel">
+            <h2>Quiz Details</h2>
+
+            <div class="form-group">
+              <label>Quiz Title *</label>
+              <input
+                type="text"
+                id="quizTitle"
+                placeholder="e.g., Chapter 5 Network Programming Quiz"
+              />
+            </div>
+
+            <div class="form-group">
+              <label>Description</label>
+              <textarea
+                id="quizDescription"
+                rows="3"
+                placeholder="Optional description..."
+              ></textarea>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
+                <label>Per-Question Time (seconds)</label>
+                <input
+                  type="number"
+                  id="perQuestionTime"
+                  placeholder="30"
+                  min="10"
+                  max="300"
+                />
+              </div>
+              <div class="form-group">
+                <label>Total Quiz Time (seconds)</label>
+                <input
+                  type="number"
+                  id="totalTime"
+                  placeholder="600"
+                  min="60"
+                />
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label>Points per Correct Answer</label>
+              <input
+                type="number"
+                id="perCorrectScore"
+                value="1"
+                min="1"
+                max="10"
+              />
+            </div>
+
+            <h3>Selected Questions (<span id="selectedCount">0</span>)</h3>
+            <div id="selectedQuestions" class="selected-questions">
+              <p style="text-align: center; color: #999">
+                No questions selected
+              </p>
+            </div>
+
+            <button
+              onclick="saveQuiz()"
+              class="btn btn-primary"
+              style="
+                width: 100%;
+                margin-top: 15px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+              "
+            >
+              <svg
+                width="20"
+                height="20"
+                fill="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+                />
+              </svg>
+              Create Quiz
+            </button>
+          </div>
+
+          <!-- Right Panel: Question Browser -->
+          <div class="panel">
+            <h2>Available Questions</h2>
+
+            <div class="form-group">
+              <input
+                type="text"
+                id="questionSearch"
+                placeholder="Search questions..."
+                onkeyup="filterQuestions()"
+              />
+            </div>
+
+            <div id="questionBrowser" class="question-browser">
+              <p style="text-align: center; color: #999">
+                Loading questions...
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Existing Quizzes Section -->
+        <div class="panel" style="margin-top: 20px">
+          <h2>Your Quizzes</h2>
+          <div id="quizList" class="quiz-list">
+            <!-- Quizzes will be loaded here -->
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "http://localhost:8090";
+      let allQuestions = [];
+      let selectedQuestionIds = [];
+
+      // Load data on page load
+      window.onload = function () {
+        loadAllQuestions();
+        loadQuizzes();
+      };
+
+      async function loadAllQuestions() {
+        try {
+          const response = await fetch(`${API_BASE}/api/questions`);
+          const data = await response.json();
+
+          if (response.ok) {
+            allQuestions = data.questions || [];
+            displayQuestions(allQuestions);
+          }
+        } catch (error) {
+          console.error("Failed to load questions:", error);
+        }
+      }
+
+      function displayQuestions(questions) {
+        const browser = document.getElementById("questionBrowser");
+
+        if (questions.length === 0) {
+          browser.innerHTML =
+            '<p style="text-align: center; color: #999;">No questions available</p>';
+          return;
+        }
+
+        browser.innerHTML = questions
+          .map((q) => {
+            const isSelected = selectedQuestionIds.includes(q.id);
+            return `
+                    <div class="question-item ${isSelected ? "selected" : ""}" 
+                         onclick="toggleQuestion('${q.id}')">
+                        <div class="question-item-text">${q.text}</div>
+                        <div class="question-item-meta">
+                            ${q.difficulty} | ${q.tags.join(", ") || "No tags"}
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      function filterQuestions() {
+        const search = document
+          .getElementById("questionSearch")
+          .value.toLowerCase();
+
+        if (!search) {
+          displayQuestions(allQuestions);
+          return;
+        }
+
+        const filtered = allQuestions.filter(
+          (q) =>
+            q.text.toLowerCase().includes(search) ||
+            q.tags.some((tag) => tag.toLowerCase().includes(search))
+        );
+
+        displayQuestions(filtered);
+      }
+
+      function toggleQuestion(questionId) {
+        const index = selectedQuestionIds.indexOf(questionId);
+
+        if (index === -1) {
+          // Add question
+          selectedQuestionIds.push(questionId);
+        } else {
+          // Remove question
+          selectedQuestionIds.splice(index, 1);
+        }
+
+        displayQuestions(
+          allQuestions.filter((q) => {
+            const search = document
+              .getElementById("questionSearch")
+              .value.toLowerCase();
+            if (!search) return true;
+            return (
+              q.text.toLowerCase().includes(search) ||
+              q.tags.some((tag) => tag.toLowerCase().includes(search))
+            );
+          })
+        );
+
+        displaySelectedQuestions();
+      }
+
+      function displaySelectedQuestions() {
+        const container = document.getElementById("selectedQuestions");
+        const countSpan = document.getElementById("selectedCount");
+
+        countSpan.textContent = selectedQuestionIds.length;
+
+        if (selectedQuestionIds.length === 0) {
+          container.innerHTML =
+            '<p style="text-align: center; color: #999;">No questions selected</p>';
+          return;
+        }
+
+        container.innerHTML = selectedQuestionIds
+          .map((qId, idx) => {
+            const question = allQuestions.find((q) => q.id === qId);
+            if (!question) return "";
+
+            return `
+                    <div class="selected-question">
+                        <span class="selected-question-order">${idx + 1}.</span>
+                        <span class="selected-question-text">${
+                          question.text
+                        }</span>
+                        <div class="selected-question-actions">
+                            ${
+                              idx > 0
+                                ? `<button class="btn-icon" onclick="moveUp(${idx})">↑</button>`
+                                : ""
+                            }
+                            ${
+                              idx < selectedQuestionIds.length - 1
+                                ? `<button class="btn-icon" onclick="moveDown(${idx})">↓</button>`
+                                : ""
+                            }
+                            <button class="btn-icon remove" onclick="removeQuestion('${qId}')">×</button>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      function moveUp(index) {
+        if (index === 0) return;
+        [selectedQuestionIds[index], selectedQuestionIds[index - 1]] = [
+          selectedQuestionIds[index - 1],
+          selectedQuestionIds[index],
+        ];
+        displaySelectedQuestions();
+      }
+
+      function moveDown(index) {
+        if (index === selectedQuestionIds.length - 1) return;
+        [selectedQuestionIds[index], selectedQuestionIds[index + 1]] = [
+          selectedQuestionIds[index + 1],
+          selectedQuestionIds[index],
+        ];
+        displaySelectedQuestions();
+      }
+
+      function removeQuestion(questionId) {
+        selectedQuestionIds = selectedQuestionIds.filter(
+          (id) => id !== questionId
+        );
+        displayQuestions(allQuestions);
+        displaySelectedQuestions();
+      }
+
+      async function saveQuiz() {
+        const title = document.getElementById("quizTitle").value.trim();
+        const description = document
+          .getElementById("quizDescription")
+          .value.trim();
+        const perQuestionTime =
+          document.getElementById("perQuestionTime").value;
+        const totalTime = document.getElementById("totalTime").value;
+        const perCorrectScore =
+          document.getElementById("perCorrectScore").value;
+
+        if (!title) {
+          alert("Quiz title is required");
+          return;
+        }
+
+        if (selectedQuestionIds.length === 0) {
+          alert("Please select at least one question");
+          return;
+        }
+
+        const quizData = {
+          title: title,
+          description: description || null,
+          questionIds: selectedQuestionIds,
+          perQuestionTime: perQuestionTime ? parseInt(perQuestionTime) : null,
+          totalTime: totalTime ? parseInt(totalTime) : null,
+          perCorrectScore: perCorrectScore ? parseInt(perCorrectScore) : 1,
+        };
+
+        try {
+          const response = await fetch(`${API_BASE}/api/quizzes`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(quizData),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            alert(`Quiz created successfully!\nQuiz ID: ${data.quizId}`);
+
+            // Clear form
+            document.getElementById("quizTitle").value = "";
+            document.getElementById("quizDescription").value = "";
+            document.getElementById("perQuestionTime").value = "";
+            document.getElementById("totalTime").value = "";
+            document.getElementById("perCorrectScore").value = "1";
+            selectedQuestionIds = [];
+            displaySelectedQuestions();
+            displayQuestions(allQuestions);
+
+            // Reload quiz list
+            loadQuizzes();
+          } else {
+            alert("Failed to create quiz: " + (data.error || data.message));
+          }
+        } catch (error) {
+          alert("Network error: " + error.message);
+        }
+      }
+
+      async function loadQuizzes() {
+        try {
+          const response = await fetch(`${API_BASE}/api/quizzes`);
+          const data = await response.json();
+
+          if (response.ok) {
+            displayQuizzes(data.quizzes || []);
+          }
+        } catch (error) {
+          console.error("Failed to load quizzes:", error);
+        }
+      }
+
+      function displayQuizzes(quizzes) {
+        const container = document.getElementById("quizList");
+
+        if (quizzes.length === 0) {
+          container.innerHTML =
+            '<p style="text-align: center; color: #999;">No quizzes created yet</p>';
+          return;
+        }
+
+        container.innerHTML = quizzes
+          .map(
+            (quiz) => `
+                <div class="quiz-card">
+                    <div class="quiz-card-header">
+                        <span class="quiz-title">${quiz.title}</span>
+                        <span class="quiz-status status-${quiz.status}">${
+              quiz.status
+            }</span>
+                    </div>
+                    ${
+                      quiz.description
+                        ? `<div class="quiz-description">${quiz.description}</div>`
+                        : ""
+                    }
+                    <div class="quiz-meta">
+                        📝 ${quiz.questionCount} questions | 
+                        ⏱️ ${quiz.perQuestionTime || "No"} sec/question | 
+                        🎯 ${quiz.perCorrectScore} pt/correct
+                    </div>
+                    <div class="quiz-actions">
+                        <button onclick="launchQuiz('${
+                          quiz.id
+                        }')" class="btn btn-primary btn-small" 
+                                ${quiz.status === "RUNNING" ? "disabled" : ""}>
+                            🚀 Launch
+                        </button>
+                        <button onclick="viewQuiz('${
+                          quiz.id
+                        }')" class="btn btn-small">👁️ View</button>
+                        <button onclick="deleteQuiz('${
+                          quiz.id
+                        }')" class="btn btn-small btn-danger"
+                                ${quiz.status === "RUNNING" ? "disabled" : ""}>
+                            🗑️ Delete
+                        </button>
+                    </div>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function launchQuiz(quizId) {
+        // Redirect to quiz control page
+        window.location.href = `quiz-control.html?quizId=${quizId}`;
+      }
+
+      function viewQuiz(quizId) {
+        alert("View quiz details: " + quizId);
+        // Could open a modal or navigate to detail page
+      }
+
+      async function deleteQuiz(quizId) {
+        if (!confirm("Are you sure you want to delete this quiz?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(`${API_BASE}/api/quizzes/${quizId}`, {
+            method: "DELETE",
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            alert("Quiz deleted successfully");
+            loadQuizzes();
+          } else {
+            alert("Failed to delete quiz: " + (data.error || data.message));
+          }
+        } catch (error) {
+          alert("Network error: " + error.message);
+        }
+      }
+    </script>
+  </body>
+</html>
