@@ -401,7 +401,6 @@
           <a href="index.html">Home</a>
           <a href="mcq-batch.html">Create MCQs</a>
           <a href="question-bank.html">Question Bank</a>
-          <a href="quiz-control.html">Quiz Control</a>
           <a href="instructor.html">Instructor</a>
         </nav>
       </header>
@@ -418,6 +417,7 @@
               <input
                 type="text"
                 id="quizTitle"
+                value="General Knowledge"
                 placeholder="e.g., Chapter 5 Network Programming Quiz"
               />
             </div>
@@ -805,9 +805,7 @@
                                 ${quiz.status === "RUNNING" ? "disabled" : ""}>
                             🚀 Launch
                         </button>
-                        <button onclick="viewQuiz('${
-                          quiz.id
-                        }')" class="btn btn-small">👁️ View</button>
+                        
                         <button onclick="deleteQuiz('${
                           quiz.id
                         }')" class="btn btn-small btn-danger"
