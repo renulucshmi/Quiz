@@ -1,30 +1,1185 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Student Interface</title>
-    <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Student Client - Remote Classroom</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(-10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes shimmer {
+        0% {
+          background-position: -1000px 0;
+        }
+        100% {
+          background-position: 1000px 0;
+        }
+      }
+
+      @keyframes ripple {
+        0% {
+          transform: scale(0);
+          opacity: 1;
+        }
+        100% {
+          transform: scale(4);
+          opacity: 0;
+        }
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+        }
+      }
+
+      .animate-fadeIn {
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .animate-pulse-custom {
+        animation: pulse 2s infinite;
+      }
+
+      .animate-slideIn {
+        animation: slideIn 0.3s ease-out;
+      }
+
+      .animate-float {
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .glass-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      .glass-light {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+      }
+
+      .gradient-bg {
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        position: relative;
+        overflow: hidden;
+      }
+
+      .gradient-bg::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.1) 0%,
+          transparent 70%
+        );
+        animation: float 20s ease-in-out infinite;
+      }
+
+      .btn-ripple {
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn-ripple::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+
+      .btn-ripple:active::after {
+        width: 300px;
+        height: 300px;
+      }
+
+      .option-hover {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
+
+      .option-hover:hover {
+        transform: translateX(4px);
+        box-shadow: -4px 0 12px rgba(56, 189, 248, 0.3);
+      }
+
+      .loading-spinner {
+        border: 3px solid rgba(255, 255, 255, 0.3);
+        border-radius: 50%;
+        border-top: 3px solid white;
+        width: 20px;
+        height: 20px;
+        animation: spin 1s linear infinite;
+      }
+
+      @keyframes spin {
+        0% {
+          transform: rotate(0deg);
+        }
+        100% {
+          transform: rotate(360deg);
+        }
+      }
+
+      .gradient-border {
+        position: relative;
+        background: linear-gradient(
+          135deg,
+          rgba(59, 130, 246, 0.3),
+          rgba(147, 51, 234, 0.3)
+        );
+        padding: 2px;
+        border-radius: 1rem;
+      }
+
+      .gradient-border-inner {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: calc(1rem - 2px);
+      }
+
+      input:focus {
+        animation: glow 2s ease-in-out infinite;
+      }
+
+      .status-badge {
+        transition: all 0.5s ease;
+      }
+
+      /* Smooth transitions for all state changes */
+      * {
+        transition-property: background-color, border-color, color, fill, stroke,
+          opacity, box-shadow, transform;
+        transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+      }
+    </style>
   </head>
-  <body>
-    <!-- TODO: Member 3 - Create student web interface -->
-    <div class="container">
-      <h1>🎓 Student Poll Interface</h1>
-
-      <!-- Login Section -->
-      <div id="loginSection">
-        <!-- TODO: Add name input and connect button -->
+  <body class="gradient-bg min-h-screen flex items-center justify-center p-4">
+    <!-- Main Container -->
+    <div
+      class="glass-card rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 animate-fadeIn hover:shadow-[0_8px_40px_rgba(59,130,246,0.4)] transition-shadow duration-500"
+    >
+      <!-- Header -->
+      <div class="text-center mb-4">
+        <div class="flex items-center justify-center gap-3 mb-2">
+          <svg
+            class="w-8 h-8 text-white animate-float"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 14l9-5-9-5-9 5 9 5z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"
+            />
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222"
+            />
+          </svg>
+          <h1 class="text-3xl font-semibold text-white">Student Client</h1>
+        </div>
+        <p class="text-sm text-white/70">Remote Classroom Interaction System</p>
       </div>
 
-      <!-- Poll Section -->
-      <div id="pollSection" class="hidden">
-        <!-- TODO: Add poll question and options -->
+      <!-- Status Banner -->
+      <div
+        id="status"
+        class="glass-light rounded-xl px-4 py-2 mt-4 flex items-center gap-3 transition-all duration-500 status-badge"
+        role="status"
+        aria-live="polite"
+      >
+        <span
+          id="statusDot"
+          class="w-3 h-3 rounded-full bg-amber-400 animate-pulse-custom shadow-lg"
+        ></span>
+        <span id="statusText" class="text-white/90 text-sm font-medium"
+          >Ready to connect</span
+        >
       </div>
 
-      <!-- Results Section -->
-      <div id="resultsSection" class="hidden">
-        <!-- TODO: Add results display with bar charts -->
+      <!-- Alert -->
+      <div
+        id="alert"
+        class="hidden mt-3 rounded-xl px-4 py-2 text-sm transition-all duration-300"
+      ></div>
+
+      <!-- Login Form -->
+      <div id="loginForm" class="mt-4 space-y-3 animate-slideIn">
+        <div>
+          <label for="studentName" class="block text-white/90 font-medium mb-2"
+            >Enter Your Name</label
+          >
+          <div class="gradient-border">
+            <input
+              type="text"
+              id="studentName"
+              placeholder="e.g., Alice"
+              class="w-full gradient-border-inner border-0 rounded-xl px-4 py-3 text-white placeholder-white/50 focus:outline-none transition-all duration-300"
+              autofocus
+            />
+          </div>
+        </div>
+        <button
+          onclick="connectToServer()"
+          class="w-full btn-ripple bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white rounded-xl px-5 py-2.5 font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
+        >
+          <span id="connectBtnText">Connect & Join</span>
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M13 7l5 5m0 0l-5 5m5-5H6"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Student Info (after login) -->
+      <div id="studentInfo" class="hidden mt-4 space-y-2 animate-slideIn">
+        <div class="flex items-center justify-between gap-3">
+          <div
+            class="glass-light rounded-xl px-4 py-3 flex items-center gap-2 flex-1 border border-white/30 hover:border-white/50 transition-all duration-300"
+          >
+            <svg
+              class="w-5 h-5 text-white/70"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
+            <span id="displayName" class="text-white/90 font-medium"></span>
+          </div>
+          <div
+            id="connectionBadge"
+            class="rounded-full px-4 py-1.5 text-xs font-medium bg-emerald-500/20 text-emerald-300 border border-emerald-400/50 flex items-center gap-1.5 shadow-lg"
+          >
+            <span
+              class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-custom"
+            ></span>
+            Connected
+          </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="grid grid-cols-2 gap-2">
+          <!-- Join Chat Button -->
+          <button
+            id="joinChatBtn"
+            onclick="openChatRoom()"
+            class="btn-ripple bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(168,85,247,0.5)] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            <span>Chat</span>
+          </button>
+
+          <!-- Ask Question Button -->
+          <button
+            id="askQuestionBtn"
+            onclick="openQARoom()"
+            class="btn-ripple bg-gradient-to-r from-blue-600 to-cyan-600 hover:from-blue-700 hover:to-cyan-700 text-white rounded-xl px-3 py-2 text-sm font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
+          >
+            <svg
+              class="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+              />
+            </svg>
+            <span>Ask</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Waiting Section -->
+      <div id="waitingSection" class="hidden mt-6 text-center animate-fadeIn">
+        <div class="mb-4">
+          <svg
+            class="w-16 h-16 mx-auto text-white/40"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="1.5"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-white mb-2">
+          Waiting for Quiz or Vote
+        </h2>
+        <p class="text-sm text-white/70">
+          The instructor will start a poll shortly...
+        </p>
+      </div>
+
+      <!-- Poll Section (Active State) -->
+      <div
+        id="pollSection"
+        class="hidden mt-4 animate-slideIn"
+        role="radiogroup"
+        aria-label="Poll options"
+      >
+        <div
+          class="glass-light rounded-xl px-4 py-3 mb-4 border-l-4 border-sky-400 shadow-lg"
+        >
+          <h2
+            id="pollQuestion"
+            class="text-white text-base font-medium leading-relaxed"
+          >
+            Loading question...
+          </h2>
+        </div>
+
+        <div id="optionsContainer" class="space-y-2 mb-4">
+          <!-- Options will be inserted here -->
+        </div>
+
+        <button
+          id="submitBtn"
+          onclick="submitAnswer()"
+          class="w-full btn-ripple bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:from-white/20 disabled:to-white/20 disabled:text-white/60 disabled:cursor-not-allowed text-white rounded-xl px-5 py-2.5 font-medium transition-all duration-300 transform hover:scale-[1.02] hover:shadow-[0_10px_30px_rgba(59,130,246,0.5)] active:scale-95 flex items-center justify-center gap-2"
+        >
+          <span id="submitBtnText">Submit Answer</span>
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </button>
+      </div>
+
+      <!-- Submitted State -->
+      <div id="submittedSection" class="hidden mt-6 text-center animate-fadeIn">
+        <div class="mb-4 relative">
+          <div class="absolute inset-0 flex items-center justify-center">
+            <div
+              class="w-20 h-20 bg-emerald-400/20 rounded-full animate-pulse-custom"
+            ></div>
+          </div>
+          <svg
+            class="w-16 h-16 mx-auto text-emerald-400 relative z-10"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h2 class="text-xl font-semibold text-white mb-2">
+          Response Submitted
+        </h2>
+        <p class="text-sm text-white/70 mb-3">
+          Waiting for instructor to reveal results...
+        </p>
+        <div class="flex justify-center gap-1">
+          <span
+            class="w-2 h-2 bg-white/50 rounded-full animate-pulse-custom"
+          ></span>
+          <span
+            class="w-2 h-2 bg-white/50 rounded-full animate-pulse-custom"
+            style="animation-delay: 0.2s"
+          ></span>
+          <span
+            class="w-2 h-2 bg-white/50 rounded-full animate-pulse-custom"
+            style="animation-delay: 0.4s"
+          ></span>
+        </div>
+      </div>
+
+      <!-- Score Display Section (for quiz mode) -->
+      <div id="scoreSection" class="hidden mt-4 animate-slideIn">
+        <div
+          class="glass-light rounded-xl px-4 py-3 border border-purple-400/50 bg-purple-500/10"
+        >
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <svg
+                class="w-5 h-5 text-purple-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  stroke-width="2"
+                  d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"
+                />
+              </svg>
+              <span class="text-white/90 font-medium">Your Total Score</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span id="studentScore" class="text-2xl font-bold text-purple-300"
+                >0</span
+              >
+              <span class="text-white/60 text-sm">pts</span>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+      let ws = null;
+      let studentName = "";
+      let selectedChoice = null;
+
+      // State tracking to prevent re-rendering
+      let currentQuizId = null;
+      let currentVoteId = null;
+      let currentQuestionId = null;
+      let currentRevealedState = false;
+
+      function showAlert(message, type) {
+        const alert = document.getElementById("alert");
+        alert.className =
+          "mt-4 rounded-xl px-4 py-3 text-sm transition-all duration-300";
+
+        if (type === "success") {
+          alert.className +=
+            " bg-emerald-500/20 text-emerald-300 border border-emerald-400/50";
+        } else if (type === "error") {
+          alert.className +=
+            " bg-rose-500/20 text-rose-300 border border-rose-400/50";
+        } else if (type === "info") {
+          alert.className +=
+            " bg-sky-500/20 text-sky-300 border border-sky-400/50";
+        }
+
+        alert.textContent = message;
+        alert.classList.remove("hidden");
+
+        setTimeout(() => {
+          alert.classList.add("hidden");
+        }, 5000);
+      }
+
+      function openChatRoom() {
+        if (!studentName) {
+          showAlert("Please connect first before joining chat", "error");
+          return;
+        }
+
+        // Store student name in localStorage for auto-login
+        localStorage.setItem("chatStudentName", studentName);
+
+        // Open chat in new window
+        const chatWindow = window.open(
+          "chat.html",
+          "_blank",
+          "width=800,height=600"
+        );
+
+        if (!chatWindow) {
+          showAlert("Please allow popups to open the chat window", "error");
+        } else {
+          showAlert("Opening chat room...", "success");
+        }
+      }
+
+      function openQARoom() {
+        if (!studentName) {
+          showAlert("Please connect first before asking questions", "error");
+          return;
+        }
+
+        // Store student name in localStorage for auto-login
+        localStorage.setItem("qaStudentName", studentName);
+
+        // Open Q&A in new window
+        const qaWindow = window.open(
+          "qa.html",
+          "_blank",
+          "width=900,height=700"
+        );
+
+        if (!qaWindow) {
+          showAlert("Please allow popups to open the Q&A window", "error");
+        } else {
+          showAlert("Opening Q&A portal...", "success");
+        }
+      }
+
+      function updateStatus(text, statusType) {
+        const statusText = document.getElementById("statusText");
+        const statusDot = document.getElementById("statusDot");
+
+        statusText.textContent = text;
+
+        // Update dot color based on status
+        statusDot.className = "w-3 h-3 rounded-full";
+
+        if (statusType === "connected") {
+          statusDot.className += " bg-emerald-400 animate-pulse-custom";
+        } else if (statusType === "waiting") {
+          statusDot.className += " bg-amber-400 animate-pulse-custom";
+        } else if (statusType === "active") {
+          statusDot.className += " bg-sky-400 animate-pulse-custom";
+        } else if (statusType === "disconnected") {
+          statusDot.className += " bg-rose-400";
+        } else {
+          statusDot.className += " bg-amber-400 animate-pulse-custom";
+        }
+      }
+
+      function connectToServer() {
+        const nameInput = document.getElementById("studentName");
+        studentName = nameInput.value.trim();
+
+        if (!studentName) {
+          showAlert("Please enter your name", "error");
+          return;
+        }
+
+        // Show loading state
+        const btn = event.target;
+        const btnText = document.getElementById("connectBtnText");
+        const originalText = btnText.textContent;
+        btnText.innerHTML = '<div class="loading-spinner inline-block"></div>';
+        btn.disabled = true;
+
+        fetch("/student/join", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: studentName }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Successfully connected!", "success");
+              updateStatus("Connected", "connected");
+
+              // Show student info with animation
+              document.getElementById("displayName").textContent = studentName;
+              setTimeout(() => {
+                document
+                  .getElementById("studentInfo")
+                  .classList.remove("hidden");
+              }, 100);
+
+              document.getElementById("loginForm").classList.add("hidden");
+
+              setTimeout(() => {
+                document
+                  .getElementById("waitingSection")
+                  .classList.remove("hidden");
+              }, 200);
+
+              // Start polling for polls
+              startPolling();
+            } else {
+              showAlert(data.message || "Connection failed", "error");
+              btnText.textContent = originalText;
+              btn.disabled = false;
+            }
+          })
+          .catch((error) => {
+            showAlert("Could not connect to server", "error");
+            updateStatus("Connection failed", "disconnected");
+            btnText.textContent = originalText;
+            btn.disabled = false;
+          });
+      }
+
+      function startPolling() {
+        console.log(
+          "Starting poll/quiz/vote checking for student:",
+          studentName
+        );
+        setInterval(() => {
+          // FIRST: Check for active quiz (new system)
+          checkForActiveQuiz();
+
+          // SECOND: Check for active vote (voting system)
+          checkForActiveVote();
+        }, 2000); // Poll every 2 seconds
+      }
+
+      async function checkForActiveQuiz() {
+        try {
+          const response = await fetch("/api/quizzes");
+          const data = await response.json();
+
+          // Find running quiz
+          const runningQuiz = data.quizzes?.find((q) => q.status === "RUNNING");
+
+          if (runningQuiz) {
+            // Quiz is active, load and display it
+            await loadQuizQuestion(runningQuiz.id);
+          } else if (currentQuizId) {
+            // Quiz ended, clear state and show waiting
+            currentQuizId = null;
+            currentQuestionId = null;
+            showWaiting();
+          }
+        } catch (error) {
+          console.error("Error checking for quiz:", error);
+        }
+      }
+
+      async function loadQuizQuestion(quizId) {
+        try {
+          const response = await fetch(
+            `/api/quizzes/${quizId}/status?studentName=${encodeURIComponent(
+              studentName
+            )}`
+          );
+          const data = await response.json();
+
+          if (data.currentQuestion) {
+            // Re-render if quiz, question, or revealed state has changed
+            if (
+              currentQuizId !== quizId ||
+              currentQuestionId !== data.currentQuestion.id ||
+              currentRevealedState !== data.revealed
+            ) {
+              currentQuizId = quizId;
+              currentQuestionId = data.currentQuestion.id;
+              currentRevealedState = data.revealed;
+              showQuiz(quizId, data);
+            }
+
+            // Update score display if available
+            if (data.studentScore !== undefined) {
+              updateScoreDisplay(data.studentScore);
+            }
+          }
+        } catch (error) {
+          console.error("Error loading quiz question:", error);
+        }
+      }
+
+      async function checkForActiveVote() {
+        // Only check for votes if no quiz is active
+        if (currentQuizId) {
+          // Quiz takes priority, skip vote check
+          return;
+        }
+
+        try {
+          const response = await fetch("/api/votes");
+          const data = await response.json();
+
+          if (data.success && data.votes && data.votes.length > 0) {
+            // Find an open vote
+            const openVote = data.votes.find((v) => v.state === "OPEN");
+
+            if (openVote) {
+              // Only show if it's a different vote
+              if (currentVoteId !== openVote.id) {
+                currentVoteId = openVote.id;
+                console.log("Active vote found:", openVote.id);
+                showVote(openVote);
+              }
+            } else if (currentVoteId) {
+              // No open vote but we had one before - it must have closed
+              currentVoteId = null;
+              showWaiting();
+            }
+          } else if (currentVoteId) {
+            // No votes at all but we had one before
+            currentVoteId = null;
+            showWaiting();
+          }
+        } catch (error) {
+          console.error("Error checking for active vote:", error);
+        }
+      }
+
+      function showQuiz(quizId, quizData) {
+        console.log("showQuiz called with quiz:", quizId, quizData);
+
+        const q = quizData.currentQuestion;
+        const progress = `${quizData.currentIndex + 1}/${
+          quizData.totalQuestions
+        }`;
+
+        // Check if student already answered this question
+        const alreadyAnswered =
+          quizData.submissions &&
+          quizData.submissions[q.id] &&
+          quizData.submissions[q.id][studentName];
+
+        // Hide waiting and submitted, show poll section (reuse for quiz)
+        document.getElementById("waitingSection").classList.add("hidden");
+        document.getElementById("submittedSection").classList.add("hidden");
+        document.getElementById("pollSection").classList.remove("hidden");
+
+        // Show score section for quiz
+        document.getElementById("scoreSection").classList.remove("hidden");
+
+        // Set question with quiz progress
+        document.getElementById(
+          "pollQuestion"
+        ).innerHTML = `<span class="text-purple-300 text-sm font-bold">QUIZ ${progress}</span><br>${q.text}`;
+
+        const container = document.getElementById("optionsContainer");
+        container.innerHTML = "";
+
+        const letters = ["A", "B", "C", "D"];
+        q.options.forEach((opt, idx) => {
+          const choice = letters[idx];
+          const div = document.createElement("div");
+
+          let divClass =
+            "option-hover glass-light border rounded-xl px-4 py-3 text-white transition-all duration-300 ease-in-out flex items-center gap-3 group";
+
+          // Style based on state
+          if (alreadyAnswered) {
+            divClass += " cursor-not-allowed opacity-70";
+          } else {
+            divClass += " cursor-pointer hover:bg-white/20 border-white/30";
+          }
+
+          if (quizData.revealed) {
+            if (idx === q.correctIndex) {
+              divClass =
+                "glass-light border-2 border-emerald-400 bg-emerald-500/30 rounded-xl px-4 py-3 text-white flex items-center gap-3";
+            } else if (alreadyAnswered && choice === selectedChoice) {
+              divClass =
+                "glass-light border-2 border-rose-400 bg-rose-500/30 rounded-xl px-4 py-3 text-white flex items-center gap-3";
+            }
+          }
+
+          div.className = divClass;
+          div.setAttribute("role", "radio");
+          div.setAttribute("aria-checked", "false");
+          div.setAttribute("tabindex", alreadyAnswered ? "-1" : "0");
+
+          if (!alreadyAnswered && !quizData.revealed) {
+            div.onclick = () => selectOption(choice, div);
+            div.onkeydown = (e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                selectOption(choice, div);
+              }
+            };
+          }
+
+          let iconHtml = "";
+          if (quizData.revealed && idx === q.correctIndex) {
+            iconHtml =
+              '<svg class="w-5 h-5 text-emerald-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+          } else if (
+            quizData.revealed &&
+            alreadyAnswered &&
+            choice === selectedChoice
+          ) {
+            iconHtml =
+              '<svg class="w-5 h-5 text-rose-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>';
+          } else {
+            iconHtml = `
+              <div class="w-5 h-5 rounded-full border-2 border-white/50 flex items-center justify-center transition-all duration-300 group-hover:border-purple-400">
+                <div class="w-0 h-0 rounded-full bg-purple-400 transition-all duration-300"></div>
+              </div>
+            `;
+          }
+
+          div.innerHTML = `
+            ${iconHtml}
+            <label class="flex-1 font-medium">${choice}. ${opt}</label>
+          `;
+          container.appendChild(div);
+        });
+
+        // Update submit button
+        const submitBtn = document.getElementById("submitBtn");
+        const submitBtnText = document.getElementById("submitBtnText");
+
+        if (alreadyAnswered && !quizData.revealed) {
+          submitBtn.disabled = true;
+          submitBtnText.textContent = "✓ Answer Submitted";
+          updateStatus("Waiting for instructor to reveal...", "waiting");
+        } else if (quizData.revealed) {
+          submitBtn.disabled = true;
+          submitBtnText.textContent = "Answer Revealed";
+          const correct = letters[q.correctIndex];
+          if (selectedChoice === correct) {
+            updateStatus("Correct Answer!", "connected");
+            // show small check icon in alerts when appropriate
+            showAlert(`Correct! The answer was ${correct}`, "success");
+          } else if (selectedChoice) {
+            updateStatus(`Incorrect. Correct was ${correct}`, "disconnected");
+            showAlert(
+              `Your answer: ${selectedChoice}, Correct: ${correct}`,
+              "error"
+            );
+          }
+        } else {
+          submitBtn.disabled = false;
+          submitBtnText.textContent = "Submit Answer";
+          updateStatus(`Quiz Active - Question ${progress}`, "active");
+          showAlert(`Quiz question ${progress} - Answer now!`, "info");
+        }
+
+        // Mark as quiz mode with quiz ID and question ID
+        submitBtn.setAttribute("data-mode", "quiz");
+        submitBtn.setAttribute("data-quiz-id", quizId);
+        submitBtn.setAttribute("data-question-id", q.id);
+      }
+
+      function selectOption(choice, element) {
+        selectedChoice = choice;
+
+        // Remove selected state from all options
+        document.querySelectorAll("#optionsContainer > div").forEach((opt) => {
+          opt.classList.remove(
+            "bg-blue-500/40",
+            "border-blue-300",
+            "shadow-lg"
+          );
+          opt.classList.add("border-white/30");
+          opt.setAttribute("aria-checked", "false");
+          // Reset radio button
+          const radio = opt.querySelector("div > div");
+          if (radio) {
+            radio.className =
+              "w-0 h-0 rounded-full bg-sky-400 transition-all duration-300";
+          }
+        });
+
+        // Add selected state to clicked option
+        element.classList.add("bg-blue-500/40", "border-blue-300", "shadow-lg");
+        element.classList.remove("border-white/30");
+        element.setAttribute("aria-checked", "true");
+
+        // Animate radio button
+        const radio = element.querySelector("div > div");
+        if (radio) {
+          radio.className =
+            "w-3 h-3 rounded-full bg-sky-400 transition-all duration-300";
+        }
+      }
+
+      function submitAnswer() {
+        if (!selectedChoice) {
+          showAlert("Please select an answer", "error");
+          return;
+        }
+
+        const submitBtn = document.getElementById("submitBtn");
+        const submitBtnText = document.getElementById("submitBtnText");
+        const mode = submitBtn.getAttribute("data-mode");
+
+        // Show loading state
+        submitBtnText.innerHTML =
+          '<div class="loading-spinner inline-block"></div>';
+        submitBtn.disabled = true;
+
+        if (mode === "quiz") {
+          // Quiz submission
+          const quizId = submitBtn.getAttribute("data-quiz-id");
+          const questionId = submitBtn.getAttribute("data-question-id");
+
+          fetch(`/api/quizzes/${quizId}/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              studentName: studentName,
+              questionId: questionId,
+              choice: selectedChoice,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Quiz answer submitted successfully!", "success");
+                submitBtnText.textContent = "✓ Answer Submitted";
+                updateStatus("Waiting for instructor to reveal...", "waiting");
+                // Don't re-enable button for quiz
+              } else {
+                showAlert(data.message || "Failed to submit answer", "error");
+                submitBtnText.textContent = "Submit Answer";
+                submitBtn.disabled = false;
+              }
+            })
+            .catch((error) => {
+              showAlert("Error submitting quiz answer", "error");
+              submitBtnText.textContent = "Submit Answer";
+              submitBtn.disabled = false;
+            });
+        } else if (mode === "vote") {
+          // Vote submission
+          const voteId = submitBtn.getAttribute("data-vote-id");
+
+          fetch(`/api/votes/${voteId}/submit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              studentName: studentName,
+              choice: selectedChoice,
+            }),
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Vote cast successfully!", "success");
+                submitBtnText.textContent = "✓ Vote Cast";
+                updateStatus("Vote submitted - Check results later", "waiting");
+
+                // For votes with revote enabled, keep the form active
+                const allowRevote = submitBtn.getAttribute("data-allow-revote");
+                if (allowRevote === "true") {
+                  setTimeout(() => {
+                    submitBtnText.textContent = "Update Vote";
+                    submitBtn.disabled = false;
+                  }, 2000);
+                } else {
+                  // For single vote, disable the button
+                  submitBtn.disabled = true;
+                }
+              } else {
+                showAlert(data.message || "Failed to cast vote", "error");
+                submitBtnText.textContent = "Cast Vote";
+                submitBtn.disabled = false;
+              }
+            })
+            .catch((error) => {
+              showAlert("Error casting vote", "error");
+              submitBtnText.textContent = "Cast Vote";
+              submitBtn.disabled = false;
+            });
+        }
+      }
+
+      function showVote(voteData) {
+        console.log("showVote called with data:", voteData);
+
+        // Hide waiting and submitted, show poll section (reuse for vote)
+        document.getElementById("waitingSection").classList.add("hidden");
+        document.getElementById("submittedSection").classList.add("hidden");
+        document.getElementById("pollSection").classList.remove("hidden");
+        document.getElementById("scoreSection").classList.add("hidden"); // Hide score for votes
+
+        // Set question with vote header
+        let questionHtml = `<span class="text-indigo-300 text-sm font-bold">📅 DATE VOTING</span><br>${voteData.question}`;
+        if (voteData.deadline && voteData.deadline !== "null") {
+          questionHtml += `<br><span class="text-sm text-purple-300">Deadline: ${voteData.deadline}</span>`;
+        }
+        document.getElementById("pollQuestion").innerHTML = questionHtml;
+
+        const container = document.getElementById("optionsContainer");
+        container.innerHTML = "";
+
+        const letters = ["A", "B", "C", "D"];
+        voteData.options.forEach((opt, idx) => {
+          const choice = letters[idx];
+          const div = document.createElement("div");
+
+          div.className =
+            "option-hover glass-light border rounded-xl px-4 py-3 text-white transition-all duration-300 ease-in-out flex items-center gap-3 group cursor-pointer hover:bg-white/20 border-white/30";
+
+          div.setAttribute("role", "radio");
+          div.setAttribute("aria-checked", "false");
+          div.setAttribute("tabindex", "0");
+
+          div.onclick = () => selectOption(choice, div);
+          div.onkeydown = (e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              selectOption(choice, div);
+            }
+          };
+
+          const iconHtml = `
+            <div class="w-5 h-5 rounded-full border-2 border-white/50 flex items-center justify-center transition-all duration-300 group-hover:border-purple-400">
+              <div class="w-0 h-0 rounded-full bg-sky-400 transition-all duration-300"></div>
+            </div>
+          `;
+
+          div.innerHTML = `
+            ${iconHtml}
+            <div class="flex-1">
+              <span class="font-semibold text-purple-300">${choice})</span>
+              <span class="ml-2">${opt}</span>
+            </div>
+          `;
+
+          container.appendChild(div);
+        });
+
+        // Enable submit button for vote
+        const submitBtn = document.getElementById("submitBtn");
+        const submitBtnText = document.getElementById("submitBtnText");
+        submitBtn.disabled = false;
+        submitBtnText.textContent = "Cast Vote";
+
+        if (voteData.allowRevote) {
+          updateStatus(
+            "Vote Active - You can change your vote anytime",
+            "active"
+          );
+          showAlert(
+            "Vote opened! You can change your vote before the deadline.",
+            "info"
+          );
+        } else {
+          updateStatus("Vote Active - Choose wisely, one vote only!", "active");
+          showAlert("Vote opened! Choose your preferred date.", "info");
+        }
+
+        // Mark as vote mode with vote ID and allowRevote flag
+        submitBtn.setAttribute("data-mode", "vote");
+        submitBtn.setAttribute("data-vote-id", voteData.id);
+        submitBtn.setAttribute(
+          "data-allow-revote",
+          voteData.allowRevote ? "true" : "false"
+        );
+      }
+
+      function showWaiting() {
+        currentQuizId = null;
+        currentVoteId = null;
+        currentQuestionId = null;
+        currentRevealedState = false;
+        document.getElementById("pollSection").classList.add("hidden");
+        document.getElementById("submittedSection").classList.add("hidden");
+        document.getElementById("waitingSection").classList.remove("hidden");
+        document.getElementById("scoreSection").classList.add("hidden");
+        document.getElementById("submitBtn").disabled = false;
+        updateStatus("Waiting for next activity...", "waiting");
+      }
+
+      function updateScoreDisplay(score) {
+        const scoreElement = document.getElementById("studentScore");
+        const currentScore = parseInt(scoreElement.textContent) || 0;
+
+        // Animate score change if different
+        if (currentScore !== score) {
+          scoreElement.style.transform = "scale(1.3)";
+          scoreElement.style.color = "#c084fc"; // brighter purple
+
+          setTimeout(() => {
+            scoreElement.textContent = score;
+            setTimeout(() => {
+              scoreElement.style.transform = "scale(1)";
+              scoreElement.style.color = "#d8b4fe"; // back to purple-300
+            }, 100);
+          }, 200);
+        } else {
+          scoreElement.textContent = score;
+        }
+      }
+    </script>
   </body>
 </html>

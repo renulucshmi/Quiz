@@ -1,30 +1,1526 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Instructor Dashboard</title>
-    <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Instructor Panel - Remote Polling</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+        }
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.1) 0%,
+          transparent 70%
+        );
+        animation: float 20s ease-in-out infinite;
+        z-index: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      .header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .header .subtitle {
+        font-size: 1.2em;
+        opacity: 0.9;
+      }
+
+      .panel-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+        margin-bottom: 30px;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .panel:hover {
+        box-shadow: 0 8px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .panel h2 {
+        color: white;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      .form-group label {
+        display: block;
+        color: white;
+        font-weight: 600;
+        margin-bottom: 8px;
+      }
+
+      .form-group input,
+      .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        font-size: 1em;
+        transition: border-color 0.3s;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: white;
+      }
+
+      .form-group input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .form-group input:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #60a5fa;
+        animation: glow 2s ease-in-out infinite;
+      }
+
+      .options-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-bottom: 15px;
+      }
+
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+        margin-right: 10px;
+        margin-bottom: 10px;
+        position: relative;
+        overflow: hidden;
+      }
+
+      .btn::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 0;
+        height: 0;
+        border-radius: 50%;
+        background: rgba(255, 255, 255, 0.4);
+        transform: translate(-50%, -50%);
+        transition: width 0.6s, height 0.6s;
+      }
+
+      .btn:active::after {
+        width: 300px;
+        height: 300px;
+      }
+
+      .btn-create {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+
+      .btn-start {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+
+      .btn-end {
+        background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+      }
+
+      .btn-reveal {
+        background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .students-list {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .student-item {
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        margin-bottom: 8px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        transition: all 0.3s ease;
+      }
+
+      .student-item:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .student-item .name {
+        font-weight: 600;
+        color: white;
+      }
+
+      .student-item .badge {
+        background: rgba(16, 185, 129, 0.3);
+        color: #6ee7b7;
+        padding: 4px 12px;
+        border-radius: 20px;
+        font-size: 0.85em;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+      }
+
+      .current-poll {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 10px;
+        margin-bottom: 20px;
+        border-left: 4px solid #60a5fa;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .current-poll h3 {
+        color: white;
+        margin-bottom: 10px;
+      }
+
+      .current-poll .question {
+        font-size: 1.1em;
+        color: rgba(255, 255, 255, 0.9);
+        margin-bottom: 15px;
+      }
+
+      .current-poll .options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .current-poll .option {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(5px);
+        padding: 10px;
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .current-poll .option.correct {
+        background: rgba(16, 185, 129, 0.2);
+        border-color: #10b981;
+        color: #6ee7b7;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        transition: all 0.3s ease;
+      }
+
+      .stat-card:hover {
+        background: rgba(255, 255, 255, 0.15);
+        transform: translateY(-2px);
+      }
+
+      .stat-card .number {
+        font-size: 2em;
+        font-weight: bold;
+        color: #60a5fa;
+        margin-bottom: 5px;
+      }
+
+      .stat-card .label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9em;
+      }
+
+      .alert {
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .alert.show {
+        display: block;
+      }
+
+      .alert-success {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+      }
+
+      .alert-error {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.5);
+      }
+
+      .alert-info {
+        background: rgba(59, 130, 246, 0.2);
+        color: #93c5fd;
+        border: 1px solid rgba(59, 130, 246, 0.5);
+      }
+
+      .status-badge {
+        display: inline-block;
+        padding: 6px 15px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+      }
+
+      .status-active {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+      }
+
+      .status-inactive {
+        background: rgba(255, 255, 255, 0.1);
+        color: rgba(255, 255, 255, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        border-radius: 15px;
+        padding: 30px;
+        margin-bottom: 30px;
+        transition: all 0.3s ease;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .card:hover {
+        box-shadow: 0 8px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .card h2 {
+        color: white;
+        margin-bottom: 20px;
+        font-size: 1.5em;
+      }
+
+      @media (max-width: 768px) {
+        .panel-grid {
+          grid-template-columns: 1fr;
+        }
+        .stats-grid {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+    </style>
   </head>
   <body>
-    <!-- TODO: Member 3 - Create instructor dashboard -->
     <div class="container">
-      <h1>👨‍🏫 Instructor Dashboard</h1>
-
-      <!-- Create Poll Form -->
-      <div class="create-poll">
-        <!-- TODO: Add poll creation form -->
+      <div class="header">
+        <h1>Instructor Control Panel</h1>
+        <p class="subtitle">Remote Classroom Interaction System</p>
       </div>
 
-      <!-- Control Buttons -->
-      <div class="controls">
-        <!-- TODO: Add start, end, reveal buttons -->
+      <!-- Quiz Management Tools -->
+      <div
+        style="
+          background: rgba(255, 255, 255, 0.15);
+          backdrop-filter: blur(20px);
+          -webkit-backdrop-filter: blur(20px);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+          border-radius: 15px;
+          padding: 30px;
+          margin-bottom: 20px;
+          transition: all 0.3s ease;
+          animation: fadeIn 0.5s ease-out;
+        "
+      >
+        <h2
+          style="
+            color: white;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"
+            />
+          </svg>
+          Quiz Management Tools
+        </h2>
+        <div
+          style="
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 15px;
+          "
+        >
+          <button
+            class="btn"
+            onclick="openMCQCreator()"
+            style="
+              background: linear-gradient(135deg, #ec4899 0%, #db2777 100%);
+              padding: 18px 20px;
+              font-size: 1em;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            "
+          >
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+              />
+            </svg>
+            MCQ Creator
+          </button>
+          <button
+            class="btn"
+            onclick="openQuestionBank()"
+            style="
+              background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+              padding: 18px 20px;
+              font-size: 1em;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            "
+          >
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M4 6H2v14c0 1.1.9 2 2 2h14v-2H4V6zm16-4H8c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-1 9H9V9h10v2zm-4 4H9v-2h6v2zm4-8H9V5h10v2z"
+              />
+            </svg>
+            Question Bank
+          </button>
+          <button
+            class="btn"
+            onclick="openQuizBuilder()"
+            style="
+              background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+              padding: 18px 20px;
+              font-size: 1em;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              gap: 8px;
+            "
+          >
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"
+              />
+            </svg>
+            Quiz Builder
+          </button>
+        </div>
       </div>
 
-      <!-- Statistics Display -->
-      <div id="stats">
-        <!-- TODO: Add real-time statistics -->
+      <div id="alert" class="alert"></div>
+
+      <div class="panel-grid">
+        <!-- Create Vote Panel -->
+        <div class="panel">
+          <h2>
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M19 3h-1V1h-2v2H8V1H6v2H5c-1.11 0-1.99.9-1.99 2L3 19c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 16H5V8h14v11zM7 10h5v5H7z"
+              />
+            </svg>
+            Create New Vote
+          </h2>
+
+          <div class="form-group">
+            <label for="voteQuestion">Voting Question</label>
+            <input
+              type="text"
+              id="voteQuestion"
+              placeholder="When should we have our assignment?"
+              value="When should we have our assignment?"
+              autofocus
+            />
+          </div>
+
+          <div class="options-grid">
+            <div class="form-group">
+              <label for="opt1">Option 1 (date/time)</label>
+              <input type="text" id="opt1" placeholder="e.g., 30th November" />
+            </div>
+            <div class="form-group">
+              <label for="opt2">Option 2 (date/time)</label>
+              <input type="text" id="opt2" placeholder="e.g., 1st December" />
+            </div>
+            <div class="form-group">
+              <label for="opt3">Option 3 (date/time)</label>
+              <input type="text" id="opt3" placeholder="e.g., 5th December" />
+            </div>
+            <div class="form-group">
+              <label for="opt4">Option 4 (date/time)</label>
+              <input type="text" id="opt4" placeholder="e.g., 10th December" />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label
+              style="
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                cursor: pointer;
+              "
+            >
+              <input
+                type="checkbox"
+                id="allowRevote"
+                checked
+                style="width: auto; cursor: pointer"
+              />
+              <span>Allow students to change their vote</span>
+            </label>
+          </div>
+
+          <div class="form-group">
+            <label for="deadline">Voting Deadline (optional)</label>
+            <input
+              type="text"
+              id="deadline"
+              placeholder="e.g., 15th December, 5:00 PM"
+            />
+          </div>
+
+          <div style="display: flex; gap: 10px; flex-wrap: wrap">
+            <button
+              class="btn btn-create"
+              onclick="createVote()"
+              id="createVoteBtn"
+            >
+              Create Vote
+            </button>
+            <button
+              class="btn btn-start"
+              onclick="openVoting()"
+              id="openVoteBtn"
+              disabled
+              style="display: none"
+            >
+              Open Voting
+            </button>
+            <button
+              class="btn btn-end"
+              onclick="closeVoting()"
+              id="closeVoteBtn"
+              disabled
+              style="display: none"
+            >
+              Close Voting
+            </button>
+          </div>
+
+          <!-- Live Results Panel -->
+          <div
+            id="voteResultsPanel"
+            style="
+              display: none;
+              margin-top: 25px;
+              padding: 20px;
+              background: rgba(255, 255, 255, 0.1);
+              border-radius: 10px;
+              border: 1px solid rgba(255, 255, 255, 0.2);
+            "
+          >
+            <h3 style="color: white; margin-bottom: 15px; font-size: 1.2em">
+              Live Results
+            </h3>
+            <div id="voteResults"></div>
+          </div>
+        </div>
+
+        <!-- Connected Students Panel -->
+        <div class="panel">
+          <h2>
+            <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M16 11c1.66 0 2.99-1.34 2.99-3S17.66 5 16 5c-1.66 0-3 1.34-3 3s1.34 3 3 3zm-8 0c1.66 0 2.99-1.34 2.99-3S9.66 5 8 5C6.34 5 5 6.34 5 8s1.34 3 3 3zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5c0-2.33-4.67-3.5-7-3.5zm8 0c-.29 0-.62.02-.97.05 1.16.84 1.97 1.97 1.97 3.45V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"
+              />
+            </svg>
+            Connected Students (<span id="studentCount">0</span>)
+          </h2>
+          <div class="students-list" id="studentsList">
+            <p style="color: #ffffff; text-align: center; padding: 20px">
+              No students connected yet
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Statistics Panel -->
+      <div class="panel">
+        <h2>
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"
+            />
+          </svg>
+          Poll Statistics
+        </h2>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="number" id="statStudents">0</div>
+            <div class="label">Students</div>
+          </div>
+          <div class="stat-card">
+            <div class="number" id="statVotes">0</div>
+            <div class="label">Total Votes</div>
+          </div>
+          <div class="stat-card">
+            <div class="number" id="statPolls">0</div>
+            <div class="label">Polls Created</div>
+          </div>
+          <div class="stat-card">
+            <div class="number">
+              <span class="status-badge" id="pollStatus">INACTIVE</span>
+            </div>
+            <div class="label">Poll Status</div>
+          </div>
+        </div>
+
+        <div id="currentPollDisplay" style="display: none">
+          <div class="current-poll">
+            <h3>Current Poll</h3>
+            <div class="question" id="currentQuestion"></div>
+            <div class="options" id="currentOptions"></div>
+          </div>
+
+          <div>
+            <button class="btn btn-start" id="startBtn" onclick="startPoll()">
+              Start Poll
+            </button>
+            <button
+              class="btn btn-end"
+              id="endBtn"
+              onclick="endPoll()"
+              disabled
+            >
+              End Poll
+            </button>
+            <button
+              class="btn btn-reveal"
+              id="revealBtn"
+              onclick="revealAnswer()"
+              disabled
+            >
+              Reveal Answer
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Chat Management Panel -->
+      <div class="panel">
+        <h2>
+          <svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zm-2 12H6v-2h12v2zm0-3H6V9h12v2zm0-3H6V6h12v2z"
+            />
+          </svg>
+          Chat Management
+        </h2>
+
+        <div class="stats-grid" style="margin-bottom: 20px">
+          <div class="stat-card">
+            <div class="number" id="chatMessages">0</div>
+            <div class="label">Messages</div>
+          </div>
+          <div class="stat-card">
+            <div class="number">
+              <span class="status-badge" id="chatStatus">DISABLED</span>
+            </div>
+            <div class="label">Chat Status</div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap">
+          <button class="btn btn-start" onclick="enableChat()">
+            Enable Chat
+          </button>
+          <button class="btn btn-end" onclick="disableChat()">
+            Disable Chat
+          </button>
+          <button class="btn btn-reveal" onclick="clearChat()">
+            Clear Chat
+          </button>
+          <button class="btn btn-primary" onclick="openChatWindow()">
+            Join Chat Room
+          </button>
+        </div>
+      </div>
+
+      <!-- Q&A Management Section -->
+      <div class="card">
+        <h2
+          style="
+            margin-bottom: 25px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+          "
+        >
+          <svg
+            style="width: 28px; height: 28px"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          Student Questions (Q&A)
+        </h2>
+
+        <div class="stats-grid" style="margin-bottom: 25px">
+          <div class="stat-card">
+            <div class="number" id="totalQuestionsCount">0</div>
+            <div class="label">Total Questions</div>
+          </div>
+          <div class="stat-card">
+            <div
+              class="number"
+              id="pendingQuestionsCount"
+              style="color: #f59e0b"
+            >
+              0
+            </div>
+            <div class="label">Pending</div>
+          </div>
+          <div class="stat-card">
+            <div
+              class="number"
+              id="answeredQuestionsCount"
+              style="color: #10b981"
+            >
+              0
+            </div>
+            <div class="label">Answered</div>
+          </div>
+        </div>
+
+        <div
+          style="display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 25px"
+        >
+          <button class="btn btn-primary" onclick="loadQuestions()">
+            Refresh Questions
+          </button>
+          <button class="btn btn-start" onclick="openQAWindow()">
+            View All Questions
+          </button>
+        </div>
+
+        <!-- Questions List -->
+        <div
+          id="questionsList"
+          style="max-height: 400px; overflow-y: auto"
+        ></div>
       </div>
     </div>
 
-    <script src="script.js"></script>
+    <script>
+      let pollsCreated = 0;
+      let currentPoll = null;
+      let qaUpdateInterval = null;
+      let currentVoteId = null;
+      let voteStatusInterval = null;
+
+      // Prefill datetime options on page load
+      window.addEventListener("DOMContentLoaded", function () {
+        prefillDatetimeOptions();
+      });
+
+      function prefillDatetimeOptions() {
+        const now = new Date();
+
+        // Option 1: Tomorrow
+        const opt1 = new Date(now);
+        opt1.setDate(opt1.getDate() + 1);
+
+        // Option 2: 2 days from now
+        const opt2 = new Date(now);
+        opt2.setDate(opt2.getDate() + 2);
+
+        // Option 3: 3 days from now
+        const opt3 = new Date(now);
+        opt3.setDate(opt3.getDate() + 3);
+
+        // Option 4: 4 days from now
+        const opt4 = new Date(now);
+        opt4.setDate(opt4.getDate() + 4);
+
+        // Set values in readable format
+        document.getElementById("opt1").value =
+          formatReadableDate(opt1) + " at 9:00 AM";
+        document.getElementById("opt2").value =
+          formatReadableDate(opt2) + " at 2:00 PM";
+        document.getElementById("opt3").value =
+          formatReadableDate(opt3) + " at 10:00 AM";
+        document.getElementById("opt4").value =
+          formatReadableDate(opt4) + " at 4:00 PM";
+      }
+
+      function formatReadableDate(date) {
+        const day = date.getDate();
+        const month = date.toLocaleString("en-US", { month: "long" });
+
+        // Add ordinal suffix (st, nd, rd, th)
+        let suffix = "th";
+        if (day === 1 || day === 21 || day === 31) suffix = "st";
+        else if (day === 2 || day === 22) suffix = "nd";
+        else if (day === 3 || day === 23) suffix = "rd";
+
+        return `${day}${suffix} ${month}`;
+      }
+
+      function formatDatetimeLocal(date) {
+        // This function is no longer needed but kept for compatibility
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, "0");
+        const day = String(date.getDate()).padStart(2, "0");
+        const hours = String(date.getHours()).padStart(2, "0");
+        const minutes = String(date.getMinutes()).padStart(2, "0");
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
+      }
+
+      function createVote() {
+        const question = document.getElementById("voteQuestion").value.trim();
+        const opt1 = document.getElementById("opt1").value.trim();
+        const opt2 = document.getElementById("opt2").value.trim();
+        const opt3 = document.getElementById("opt3").value.trim();
+        const opt4 = document.getElementById("opt4").value.trim();
+        const allowRevote = document.getElementById("allowRevote").checked;
+        const deadlineInput = document.getElementById("deadline").value.trim();
+
+        if (!question) {
+          showAlert("Please enter a voting question", "error");
+          return;
+        }
+
+        if (!opt1 || !opt2 || !opt3 || !opt4) {
+          showAlert("Please fill in all 4 date/time options", "error");
+          return;
+        }
+
+        // Check for duplicates
+        const options = [opt1, opt2, opt3, opt4];
+        const uniqueOptions = new Set(options);
+        if (uniqueOptions.size !== 4) {
+          showAlert(
+            "Date/time options must be unique (no duplicates allowed)",
+            "error"
+          );
+          return;
+        }
+
+        // Deadline is optional and stored as text
+        const voteData = {
+          question: question,
+          options: options,
+          allowRevote: allowRevote,
+          deadline: deadlineInput || null,
+        };
+
+        fetch("/api/votes/create", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(voteData),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Vote created successfully!", "success");
+              currentVoteId = data.voteId;
+
+              // Update UI
+              document.getElementById("createVoteBtn").disabled = true;
+              document.getElementById("openVoteBtn").style.display =
+                "inline-block";
+              document.getElementById("openVoteBtn").disabled = false;
+              document.getElementById("closeVoteBtn").style.display =
+                "inline-block";
+
+              pollsCreated++;
+              document.getElementById("statPolls").textContent = pollsCreated;
+            } else {
+              showAlert(data.message || "Failed to create vote", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error creating vote: " + error.message, "error");
+          });
+      }
+
+      function openVoting() {
+        if (!currentVoteId) return;
+
+        fetch(`/api/votes/${currentVoteId}/open`, { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Voting opened! Students can now vote.", "success");
+              document.getElementById("pollStatus").textContent = "ACTIVE";
+              document.getElementById("pollStatus").className =
+                "status-badge status-active";
+              document.getElementById("openVoteBtn").disabled = true;
+              document.getElementById("closeVoteBtn").disabled = false;
+              document.getElementById("voteResultsPanel").style.display =
+                "block";
+
+              // Start polling for live updates
+              startVoteStatusPolling();
+            } else {
+              showAlert(data.message || "Failed to open voting", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error opening voting: " + error.message, "error");
+          });
+      }
+
+      function closeVoting() {
+        if (!currentVoteId) return;
+
+        fetch(`/api/votes/${currentVoteId}/close`, { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Voting closed!", "info");
+              document.getElementById("pollStatus").textContent = "CLOSED";
+              document.getElementById("pollStatus").className =
+                "status-badge status-inactive";
+              document.getElementById("closeVoteBtn").disabled = true;
+
+              // Stop polling
+              stopVoteStatusPolling();
+
+              // Final update
+              updateVoteStatus();
+            } else {
+              showAlert(data.message || "Failed to close voting", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error closing voting: " + error.message, "error");
+          });
+      }
+
+      function startVoteStatusPolling() {
+        if (voteStatusInterval) {
+          clearInterval(voteStatusInterval);
+        }
+        voteStatusInterval = setInterval(updateVoteStatus, 1000);
+        updateVoteStatus(); // Immediate first update
+      }
+
+      function stopVoteStatusPolling() {
+        if (voteStatusInterval) {
+          clearInterval(voteStatusInterval);
+          voteStatusInterval = null;
+        }
+      }
+
+      function updateVoteStatus() {
+        if (!currentVoteId) return;
+
+        fetch(`/api/votes/${currentVoteId}/status`)
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              displayVoteResults(data);
+            }
+          })
+          .catch((error) => {
+            console.error("Error fetching vote status:", error);
+          });
+      }
+
+      function displayVoteResults(data) {
+        const resultsContainer = document.getElementById("voteResults");
+        const counts = data.counts || [0, 0, 0, 0];
+        const percent = data.percent || [0, 0, 0, 0];
+        const winnerIndexes = data.winnerIndexes || [];
+        const options = data.options || [];
+
+        let html = `<div style="color: white; margin-bottom: 15px;"><strong>${
+          data.question || ""
+        }</strong></div>`;
+
+        options.forEach((opt, index) => {
+          const isWinner = winnerIndexes.includes(index);
+
+          html += `
+            <div style="margin-bottom: 12px; padding: 12px; background: rgba(255, 255, 255, ${
+              isWinner ? "0.2" : "0.08"
+            }); border-radius: 8px; border-left: 4px solid ${
+            isWinner ? "#10b981" : "rgba(255, 255, 255, 0.3)"
+          };">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                <span style="color: white; font-weight: ${
+                  isWinner ? "600" : "400"
+                };">
+                  ${isWinner ? "🏆 " : ""}Option ${index + 1}: ${opt}
+                </span>
+                <span style="color: ${
+                  isWinner ? "#6ee7b7" : "#93c5fd"
+                }; font-weight: 600;">
+                  ${counts[index]} vote${
+            counts[index] !== 1 ? "s" : ""
+          } (${percent[index].toFixed(1)}%)
+                </span>
+              </div>
+              <div style="background: rgba(255, 255, 255, 0.1); height: 8px; border-radius: 4px; overflow: hidden;">
+                <div style="background: ${
+                  isWinner
+                    ? "linear-gradient(90deg, #10b981, #059669)"
+                    : "linear-gradient(90deg, #3b82f6, #2563eb)"
+                }; height: 100%; width: ${
+            percent[index]
+          }%; transition: width 0.3s ease;"></div>
+              </div>
+            </div>
+          `;
+        });
+
+        // Show total votes
+        const totalVotes = counts.reduce((a, b) => a + b, 0);
+        html += `<div style="color: rgba(255, 255, 255, 0.7); font-size: 0.9em; margin-top: 10px; text-align: right;">Total: ${totalVotes} vote${
+          totalVotes !== 1 ? "s" : ""
+        }</div>`;
+
+        resultsContainer.innerHTML = html;
+      }
+
+      function showAlert(message, type) {
+        const alert = document.getElementById("alert");
+        alert.className = `alert alert-${type} show`;
+        alert.textContent = message;
+        setTimeout(() => {
+          alert.className = "alert";
+        }, 5000);
+      }
+
+      // Legacy poll functions (kept for backward compatibility if needed)
+      /*
+      function createPoll() {
+        // This has been replaced by createVote()
+      }
+
+      function displayCurrentPoll() {
+        // This has been replaced by displayVoteResults()
+      }
+
+      function startPoll() {
+        // This has been replaced by openVoting()
+      }
+
+      function endPoll() {
+        // This has been replaced by closeVoting()
+      }
+
+      function revealAnswer() {
+        // Not applicable for date voting
+      }
+
+      function clearForm() {
+        // Form clearing handled in createVote()
+      }
+      */
+
+      function updateStats() {
+        fetch("/instructor/stats")
+          .then((response) => response.json())
+          .then((data) => {
+            console.log("Stats response:", data); // Debug log
+
+            // Update counts
+            const studentCount = data.totalStudents || 0;
+            document.getElementById("studentCount").textContent = studentCount;
+            document.getElementById("statStudents").textContent = studentCount;
+            document.getElementById("statVotes").textContent =
+              data.totalVotes || 0;
+
+            // Update students list
+            const studentsList = document.getElementById("studentsList");
+            if (data.students && data.students.length > 0) {
+              studentsList.innerHTML = data.students
+                .map((student) => {
+                  const studentName = student.name || student;
+                  const answered = student.answered ? "✓" : "○";
+                  return `
+                                <div class="student-item">
+                                    <span class="name">${studentName}</span>
+                                    <span class="badge">${answered} Online</span>
+                                </div>
+                            `;
+                })
+                .join("");
+            } else {
+              studentsList.innerHTML =
+                '<p style="color: #666; text-align: center; padding: 20px;">No students connected yet</p>';
+            }
+          })
+          .catch((error) => {
+            console.error("Error updating stats:", error);
+          });
+      }
+
+      // Update stats every 2 seconds
+      setInterval(updateStats, 2000);
+      updateStats();
+
+      // Chat management functions
+      function enableChat() {
+        fetch("/chat/enable", { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Chat enabled for discussion!", "success");
+              updateChatStatus();
+            }
+          })
+          .catch((error) => {
+            showAlert("Error enabling chat", "error");
+          });
+      }
+
+      function disableChat() {
+        fetch("/chat/disable", { method: "POST" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Chat disabled", "info");
+              updateChatStatus();
+            }
+          })
+          .catch((error) => {
+            showAlert("Error disabling chat", "error");
+          });
+      }
+
+      function clearChat() {
+        if (confirm("Are you sure you want to clear all chat messages?")) {
+          fetch("/chat/clear", { method: "POST" })
+            .then((response) => response.json())
+            .then((data) => {
+              if (data.success) {
+                showAlert("Chat history cleared", "success");
+                updateChatStatus();
+              }
+            })
+            .catch((error) => {
+              showAlert("Error clearing chat", "error");
+            });
+        }
+      }
+
+      function openChatWindow() {
+        // Store instructor name in localStorage for auto-login
+        localStorage.setItem("chatStudentName", "Instructor");
+
+        // Open chat in new window
+        const chatWindow = window.open(
+          "chat.html",
+          "ChatRoom",
+          "width=900,height=700"
+        );
+
+        if (!chatWindow) {
+          showAlert("Please allow popups to open the chat window", "error");
+        }
+      }
+
+      function updateChatStatus() {
+        fetch("/chat/status")
+          .then((response) => response.json())
+          .then((data) => {
+            document.getElementById("chatMessages").textContent =
+              data.totalMessages || 0;
+
+            const statusBadge = document.getElementById("chatStatus");
+            if (data.enabled) {
+              statusBadge.textContent = "ENABLED";
+              statusBadge.className = "status-badge status-active";
+            } else {
+              statusBadge.textContent = "DISABLED";
+              statusBadge.className = "status-badge status-inactive";
+            }
+          })
+          .catch((error) => {
+            console.error("Error updating chat status:", error);
+          });
+      }
+
+      // ==================== Q&A Functions ====================
+
+      function loadQuestions() {
+        fetch("/qa/questions")
+          .then((response) => {
+            if (!response.ok) {
+              throw new Error("Server returned " + response.status);
+            }
+            return response.json();
+          })
+          .then((data) => {
+            displayQuestions(data.questions);
+            updateQAStats(data);
+          })
+          .catch((error) => {
+            console.error("Error loading questions:", error);
+            showAlert(
+              "Error loading questions. Server may not be running.",
+              "error"
+            );
+          });
+      }
+
+      function displayQuestions(questions) {
+        const container = document.getElementById("questionsList");
+
+        if (questions.length === 0) {
+          container.innerHTML = `
+            <div style="text-align: center; padding: 40px; color: rgba(255,255,255,0.6)">
+              <svg style="width: 64px; height: 64px; margin: 0 auto 12px; opacity: 0.5" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+              </svg>
+              <p>No questions yet</p>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = questions
+          .map((q) => {
+            const date = new Date(q.timestamp);
+            const timeStr = date.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            });
+            const dateStr = date.toLocaleDateString();
+
+            const statusClass =
+              q.status === "PENDING" ? "status-pending" : "status-active";
+            const statusIcon = q.status === "PENDING" ? "⏳" : "✅";
+
+            return `
+              <div style="background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); border-radius: 10px; padding: 20px; margin-bottom: 15px; border-left: 4px solid ${
+                q.status === "PENDING" ? "#f59e0b" : "#10b981"
+              }; border: 1px solid rgba(255, 255, 255, 0.2)">
+                <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px">
+                  <div>
+                    <span class="status-badge ${statusClass}">${statusIcon} ${
+              q.status
+            }</span>
+                    <span style="font-weight: 600; color: white; margin-left: 12px">👤 ${
+                      q.studentName
+                    }</span>
+                  </div>
+                  <div style="font-size: 12px; color: rgba(255, 255, 255, 0.7)">
+                    📅 ${dateStr} 🕐 ${timeStr}
+                  </div>
+                </div>
+                <div style="color: rgba(255, 255, 255, 0.9); margin-bottom: 15px; line-height: 1.6">
+                  <strong>Question:</strong> ${escapeHtml(q.question)}
+                </div>
+                ${
+                  q.reply
+                    ? `
+                  <div style="background: rgba(59, 130, 246, 0.15); border-left: 3px solid #3b82f6; padding: 15px; border-radius: 6px; margin-bottom: 15px; border: 1px solid rgba(59, 130, 246, 0.3)">
+                    <div style="font-size: 12px; color: #93c5fd; font-weight: 600; margin-bottom: 8px">📝 Your Reply:</div>
+                    <div style="color: rgba(255, 255, 255, 0.9)">${escapeHtml(
+                      q.reply
+                    )}</div>
+                  </div>
+                `
+                    : ""
+                }
+                <div style="display: flex; gap: 10px; margin-top: 15px">
+                  ${
+                    !q.reply
+                      ? `<button class="btn btn-primary" onclick="replyToQuestion(${
+                          q.id
+                        }, '${escapeHtml(q.studentName)}')">✍️ Reply</button>`
+                      : `<button class="btn btn-start" onclick="editReply(${
+                          q.id
+                        }, '${escapeHtml(q.reply)}')">✏️ Edit Reply</button>`
+                  }
+                  <button class="btn btn-end" onclick="deleteQuestion(${
+                    q.id
+                  })">🗑️ Delete</button>
+                </div>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      function updateQAStats(data) {
+        document.getElementById("totalQuestionsCount").textContent =
+          data.questions.length;
+        document.getElementById("pendingQuestionsCount").textContent =
+          data.pendingCount || 0;
+        document.getElementById("answeredQuestionsCount").textContent =
+          data.questions.length - (data.pendingCount || 0);
+      }
+
+      function replyToQuestion(questionId, studentName) {
+        const reply = prompt(`Reply to ${studentName}'s question:`);
+
+        if (!reply || !reply.trim()) {
+          return;
+        }
+
+        fetch("/qa/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ questionId: questionId, reply: reply.trim() }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Reply sent successfully!", "success");
+              loadQuestions();
+            } else {
+              showAlert(data.message || "Failed to send reply", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error sending reply", "error");
+          });
+      }
+
+      function editReply(questionId, currentReply) {
+        const newReply = prompt("Edit your reply:", currentReply);
+
+        if (!newReply || !newReply.trim()) {
+          return;
+        }
+
+        fetch("/qa/reply", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            questionId: questionId,
+            reply: newReply.trim(),
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Reply updated successfully!", "success");
+              loadQuestions();
+            } else {
+              showAlert(data.message || "Failed to update reply", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error updating reply", "error");
+          });
+      }
+
+      function deleteQuestion(questionId) {
+        if (!confirm("Are you sure you want to delete this question?")) {
+          return;
+        }
+
+        fetch(`/qa/delete?id=${questionId}`, { method: "DELETE" })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              showAlert("Question deleted", "success");
+              loadQuestions();
+            } else {
+              showAlert(data.message || "Failed to delete question", "error");
+            }
+          })
+          .catch((error) => {
+            showAlert("Error deleting question", "error");
+          });
+      }
+
+      function openQAWindow() {
+        window.open("qa.html", "QARoom", "width=900,height=700");
+      }
+
+      function escapeHtml(text) {
+        if (!text) return "";
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Update chat status periodically
+      setInterval(updateChatStatus, 3000);
+      updateChatStatus();
+
+      // Update Q&A periodically
+      setInterval(loadQuestions, 5000);
+      loadQuestions();
+
+      // ==================== Quiz Management Functions ====================
+
+      function openMCQCreator() {
+        window.open("mcq-batch.html", "MCQCreator", "width=1200,height=800");
+      }
+
+      function openQuestionBank() {
+        window.open(
+          "question-bank.html",
+          "QuestionBank",
+          "width=1200,height=800"
+        );
+      }
+
+      function openQuizBuilder() {
+        window.open(
+          "quiz-builder.html",
+          "QuizBuilder",
+          "width=1200,height=800"
+        );
+      }
+
+      function openQuizControl() {
+        window.open(
+          "quiz-control.html",
+          "QuizControl",
+          "width=1400,height=900"
+        );
+      }
+    </script>
   </body>
 </html>

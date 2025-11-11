@@ -1,17 +1,473 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
   <head>
-    <title>Remote Polling System</title>
-    <link rel="stylesheet" href="styles.css" />
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Remote Classroom Polling Dashboard</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.1) 0%,
+          transparent 70%
+        );
+        animation: float 20s ease-in-out infinite;
+        z-index: 0;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+        position: relative;
+        z-index: 1;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .subtitle {
+        font-size: 1.2em;
+        opacity: 0.9;
+        margin-bottom: 20px;
+      }
+
+      .nav-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      .nav-btn {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        color: white;
+        padding: 12px 24px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.3s;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .nav-btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+      }
+
+      .status-indicator {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-bottom: 20px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: white;
+      }
+
+      .status-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .poll-container {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.37);
+        animation: fadeIn 0.5s ease-out;
+        margin-bottom: 20px;
+      }
+
+      .no-poll {
+        text-align: center;
+        padding: 60px 20px;
+        color: white;
+      }
+
+      .no-poll .icon {
+        font-size: 4em;
+        margin-bottom: 20px;
+      }
+
+      .no-poll h2 {
+        font-size: 2em;
+        margin-bottom: 10px;
+      }
+
+      .no-poll p {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 1.1em;
+      }
+
+      .poll-header {
+        margin-bottom: 30px;
+      }
+
+      .poll-header h2 {
+        color: white;
+        font-size: 1.8em;
+        margin-bottom: 15px;
+      }
+
+      .badge {
+        background: rgba(59, 130, 246, 0.3);
+        color: #93c5fd;
+        padding: 6px 16px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        border: 1px solid rgba(59, 130, 246, 0.5);
+      }
+
+      .options-container {
+        display: grid;
+        gap: 15px;
+        margin-bottom: 20px;
+      }
+
+      .option-item {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 2px solid rgba(255, 255, 255, 0.2);
+        border-radius: 10px;
+        padding: 15px 20px;
+        transition: all 0.3s;
+      }
+
+      .option-item:hover {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+      }
+
+      .option-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 10px;
+      }
+
+      .option-label {
+        color: white;
+        font-weight: 600;
+        font-size: 1.1em;
+      }
+
+      .vote-count {
+        color: #60a5fa;
+        font-weight: 600;
+      }
+
+      .progress-bar {
+        height: 8px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 4px;
+        overflow: hidden;
+      }
+
+      .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #3b82f6, #60a5fa);
+        border-radius: 4px;
+        transition: width 0.5s ease;
+      }
+
+      .correct-answer {
+        background: rgba(16, 185, 129, 0.2);
+        border: 2px solid rgba(16, 185, 129, 0.5);
+        border-radius: 10px;
+        padding: 15px 20px;
+        margin-top: 20px;
+      }
+
+      .correct-badge {
+        color: #6ee7b7;
+        font-size: 1.1em;
+        font-weight: 600;
+      }
+
+      footer {
+        text-align: center;
+        color: rgba(255, 255, 255, 0.8);
+        padding: 20px;
+        margin-top: 30px;
+      }
+
+      footer p {
+        margin: 5px 0;
+      }
+
+      .tech-stack {
+        color: rgba(255, 255, 255, 0.6);
+        font-size: 0.9em;
+      }
+    </style>
   </head>
   <body>
     <div class="container">
-      <h1>🎓 Remote Classroom Polling System</h1>
-      <p>Select your interface:</p>
-      <div class="buttons">
-        <a href="student.html" class="btn">Student Interface</a>
-        <a href="instructor.html" class="btn">Instructor Dashboard</a>
+      <header>
+        <h1>Remote Classroom Interaction System</h1>
+        <p class="subtitle">Live Poll Dashboard</p>
+        <div class="nav-buttons">
+          <a href="student.html" class="nav-btn">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"
+              />
+            </svg>
+            Student Portal
+          </a>
+          <a href="instructor.html" class="nav-btn">
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 3L1 9l4 2.18v6L12 21l7-3.82v-6l2-1.09V17h2V9L12 3zm6.82 6L12 12.72 5.18 9 12 5.28 18.82 9zM17 15.99l-5 2.73-5-2.73v-3.72L12 15l5-2.73v3.72z"
+              />
+            </svg>
+            Instructor Panel
+          </a>
+        </div>
+      </header>
+
+      <div id="status-indicator" class="status-indicator">
+        <span class="status-dot"></span>
+        <span id="status-text">Connecting...</span>
       </div>
+
+      <div id="poll-container" class="poll-container">
+        <div id="no-poll" class="no-poll">
+          <div
+            class="welcome-animation"
+            style="animation: fadeIn 1s ease-out, float 3s ease-in-out infinite"
+          >
+            <div
+              class="icon"
+              style="
+                font-size: 4em;
+                margin-bottom: 20px;
+                animation: float 2s ease-in-out infinite;
+              "
+            >
+              👋
+            </div>
+            <h2
+              style="
+                font-size: 2.5em;
+                margin-bottom: 15px;
+                background: linear-gradient(135deg, #60a5fa, #93c5fd);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              "
+            >
+              Welcome to the Classroom!
+            </h2>
+            <p
+              style="
+                font-size: 1.2em;
+                color: rgba(255, 255, 255, 0.9);
+                max-width: 600px;
+                margin: 0 auto;
+                line-height: 1.6;
+              "
+            >
+              Get ready for an interactive learning experience
+            </p>
+            <div
+              style="
+                margin-top: 30px;
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                flex-wrap: wrap;
+              "
+            >
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 1.5s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">📊</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Live Polls
+                </div>
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 2s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">💬</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Chat
+                </div>
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 2.5s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">❓</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Q&A
+                </div>
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 3s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">📝</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Quizzes
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="poll-content" class="poll-content" style="display: none">
+          <div class="poll-header">
+            <h2 id="poll-question">Loading question...</h2>
+            <div class="poll-meta">
+              <span id="total-votes" class="badge">0 votes</span>
+            </div>
+          </div>
+
+          <div id="options-container" class="options-container">
+            <!-- Options will be inserted here dynamically -->
+          </div>
+
+          <div id="correct-answer" class="correct-answer" style="display: none">
+            <div class="correct-badge">
+              ✓ Correct Answer: <strong id="correct-choice">-</strong>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <footer>
+        <p>Network Programming Assignment • 5th Semester • October 2025</p>
+        <p class="tech-stack">
+          Java 21 • TCP Sockets • Multithreading • Embedded HTTP Server
+        </p>
+      </footer>
     </div>
+
+    <script src="script.js"></script>
   </body>
 </html>
