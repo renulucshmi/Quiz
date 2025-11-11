@@ -1,6 +1,6 @@
-# Remote Classroom Polling System
+# Remote Classroom Quiz System
 
-A real-time quiz/poll application with **Chat/Discussion Feature** using Java Network Programming.
+A real-time quiz/vote application with **Chat/Discussion Feature** using Java Network Programming.
 
 ## 🏗️ Architecture
 
@@ -12,7 +12,7 @@ A real-time quiz/poll application with **Chat/Discussion Feature** using Java Ne
 
 ## ✨ New Feature: Chat/Discussion Room 💬
 
-The chat feature allows students to discuss poll questions and results in real-time:
+The chat feature allows students to discuss quiz questions and results in real-time:
 
 ### Features:
 
@@ -83,14 +83,14 @@ The chat feature allows students to discuss poll questions and results in real-t
 - **Files:** `src/client/StudentClient.java`
 - Connect to server
 - Send/receive messages
-- Display polls and results
+- Display quizzes and results
 - **New:** Handle incoming chat messages and display in console
 
-### Member 5: Data Management (PollManager.java, Models.java, ChatManager.java)
+### Member 5: Data Management (Models.java, ChatManager.java, etc.)
 
 - **Concept:** Thread Safety, Concurrency
-- **Files:** `src/server/PollManager.java`, `src/server/Models.java`, `src/server/ChatManager.java`
-- Thread-safe poll management
+- **Files:** `src/server/Models.java`, `src/server/ChatManager.java`, `src/server/QuizManager.java`, `src/server/VoteManager.java`
+- Thread-safe quiz and vote management
 - Atomic operations
 - Concurrent data structures
 - **New:** ChatManager with ConcurrentLinkedQueue for thread-safe messaging
@@ -138,8 +138,8 @@ http://localhost:8090/chat.html
 ### Server to Client:
 
 ```json
-{"type":"POLL","id":1,"question":"What is 2+2?","options":["3","4","5","6"]}
-{"type":"RESULT","id":1,"counts":[1,15,2,0],"correct":1}
+{"type":"QUIZ","id":1,"question":"What is 2+2?","options":["3","4","5","6"]}
+{"type":"RESULT","counts":[1,15,2,0],"correct":1}
 {"type":"ACK","message":"Answer recorded"}
 {"type":"CHAT","id":5,"username":"Bob","message":"I think it's B","timestamp":1699564800000}
 {"type":"chatCleared","message":"Chat history has been cleared"}
@@ -171,15 +171,14 @@ http://localhost:8090/chat.html
 
 1. Start server
 2. Connect multiple clients
-3. Create poll via CLI: `newpoll Test? | A;B;C;D | B`
-4. Start poll: `startpoll`
-5. Submit answers from clients
-6. End poll: `endpoll`
-7. Reveal answer: `reveal`
-8. **Enable chat:** `enablechat`
-9. **Open chat room:** http://localhost:8090/chat.html
-10. **Send messages** and see real-time updates
-11. Check web UI at http://localhost:8090
+3. Create quiz via web interface
+4. Start quiz from instructor panel
+5. Submit answers from students
+6. Reveal answer from instructor panel
+7. **Enable chat:** `enablechat`
+8. **Open chat room:** http://localhost:8090/chat.html
+9. **Send messages** and see real-time updates
+10. Check web UI at http://localhost:8090
 
 ## 🆕 Chat Feature Testing
 

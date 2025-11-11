@@ -5,7 +5,6 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Scanner;
 import java.util.concurrent.*;
-import server.Models.Poll;
 import server.Models.Student;
 
 /**
@@ -13,9 +12,9 @@ import server.Models.Student;
  * 
  * Features:
  * - Multithreaded TCP server using ExecutorService
- * - Instructor CLI for poll management
+ * - Instructor CLI for quiz and vote management
  * - Embedded HTTP server for web dashboard
- * - Thread-safe student registry and poll state
+ * - Thread-safe student registry
  */
 public class MainServer {
 
@@ -25,7 +24,6 @@ public class MainServer {
 
     private final ServerSocket serverSocket;
     private final ExecutorService threadPool;
-    private final PollManager pollManager;
     private final ChatManager chatManager;
     private final QAManager qaManager;
     private final QuestionBank questionBank;
@@ -41,12 +39,11 @@ public class MainServer {
     public MainServer() throws IOException {
         this.serverSocket = new ServerSocket(TCP_PORT);
         this.threadPool = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
-        this.pollManager = new PollManager();
         this.chatManager = new ChatManager();
         this.qaManager = new QAManager();
         this.questionBank = new QuestionBank();
         this.quizManager = new QuizManager();
-        this.dashboard = new HttpDashboard(HTTP_PORT, pollManager, chatManager, qaManager, questionBank, quizManager, students, handlers);
+        this.dashboard = new HttpDashboard(HTTP_PORT, chatManager, qaManager, questionBank, quizManager, students, handlers);
 
         System.out.println("╔════════════════════════════════════════════════════════════╗");
         System.out.println("║   Remote Classroom Polling System - Server Started       ║");
@@ -74,7 +71,7 @@ public class MainServer {
         while (running) {
             try {
                 Socket clientSocket = serverSocket.accept();
-                ClientHandler handler = new ClientHandler(clientSocket, pollManager, chatManager, this);
+                ClientHandler handler = new ClientHandler(clientSocket, chatManager, this);
                 threadPool.submit(handler);
 
             } catch (IOException e) {
@@ -115,27 +112,6 @@ public class MainServer {
         String cmd = parts[0].toLowerCase();
 
         switch (cmd) {
-            case "newpoll":
-                if (parts.length < 2) {
-                    System.out.println("Usage: newpoll <question> | <opt1>;<opt2>;<opt3>;<opt4> | <correct>");
-                    System.out.println("Example: newpoll What is 2+2? | 1;4;5;8 | B");
-                    return;
-                }
-                handleNewPoll(parts[1]);
-                break;
-
-            case "startpoll":
-                handleStartPoll();
-                break;
-
-            case "endpoll":
-                handleEndPoll();
-                break;
-
-            case "reveal":
-                handleReveal();
-                break;
-
             case "enablechat":
                 handleEnableChat();
                 break;
@@ -163,99 +139,6 @@ public class MainServer {
             default:
                 System.out.println("Unknown command: " + cmd + ". Type 'help' for available commands.");
         }
-    }
-
-    /**
-     * Create a new poll.
-     * Format: newpoll Question? | A;B;C;D | B
-     */
-    private void handleNewPoll(String args) {
-        String[] parts = args.split("\\|");
-        if (parts.length != 3) {
-            System.out.println("Invalid format. Use: question | options | correct");
-            return;
-        }
-
-        String question = parts[0].trim();
-        String[] optionsRaw = parts[1].trim().split(";");
-        String correct = parts[2].trim().toUpperCase();
-
-        if (optionsRaw.length != 4) {
-            System.out.println("Must provide exactly 4 options separated by semicolon");
-            return;
-        }
-
-        // Format options as A) B) C) D)
-        String[] options = new String[4];
-        for (int i = 0; i < 4; i++) {
-            char letter = (char) ('A' + i);
-            options[i] = letter + ") " + optionsRaw[i].trim();
-        }
-
-        int correctIndex = Poll.choiceToIndex(correct);
-        if (correctIndex < 0 || correctIndex > 3) {
-            System.out.println("Correct answer must be A, B, C, or D");
-            return;
-        }
-
-        Poll poll = pollManager.createPoll(question, options, correctIndex, 60);
-        System.out.println("✓ Poll created successfully!");
-        System.out.println("  ID: " + poll.id);
-        System.out.println("  Question: " + question);
-        System.out.println("  Correct: " + correct);
-        System.out.println("\nUse 'startpoll' to activate it.");
-    }
-
-    /**
-     * Start the current poll and broadcast to all clients.
-     */
-    private void handleStartPoll() {
-        Poll poll = pollManager.startPoll();
-        if (poll == null) {
-            System.out.println("✗ No poll to start. Create one with 'newpoll' first.");
-            return;
-        }
-
-        System.out.println("✓ Poll started and broadcasting to " + handlers.size() + " students...");
-
-        // Broadcast to all connected clients
-        for (ClientHandler handler : handlers.values()) {
-            handler.sendPoll(poll);
-        }
-
-        System.out.println("✓ Poll broadcasted successfully!");
-    }
-
-    /**
-     * End the current poll.
-     */
-    private void handleEndPoll() {
-        Poll poll = pollManager.endPoll();
-        if (poll == null) {
-            System.out.println("✗ No poll to end.");
-            return;
-        }
-
-        System.out.println("✓ Poll ended. Total votes: " + poll.getTotalVotes());
-
-        // Optionally broadcast results
-        for (ClientHandler handler : handlers.values()) {
-            handler.sendResult(poll);
-        }
-    }
-
-    /**
-     * Reveal the correct answer.
-     */
-    private void handleReveal() {
-        Poll poll = pollManager.revealAnswer();
-        if (poll == null) {
-            System.out.println("✗ No poll to reveal.");
-            return;
-        }
-
-        System.out.println("✓ Correct answer revealed: " + poll.getCorrectChoice());
-        System.out.println("  Check the dashboard for updated results.");
     }
 
     /**
@@ -294,25 +177,6 @@ public class MainServer {
             students.values().forEach(s -> System.out.println("  - " + s.name + " (ID: " + s.id + ")"));
         }
 
-        Poll poll = pollManager.getCurrentPoll();
-        if (poll != null) {
-            System.out.println("\nCurrent Poll:");
-            System.out.println("  ID: " + poll.id);
-            System.out.println("  Question: " + poll.question);
-            System.out.println("  Status: " + (poll.active ? "ACTIVE" : "INACTIVE"));
-            System.out.println("  Revealed: " + (poll.revealed ? "YES" : "NO"));
-            System.out.println("  Total votes: " + poll.getTotalVotes());
-
-            System.out.println("\n  Votes breakdown:");
-            for (int i = 0; i < poll.options.length; i++) {
-                char letter = (char) ('A' + i);
-                int count = poll.getCount(i);
-                System.out.println("    " + letter + ": " + count + " votes");
-            }
-        } else {
-            System.out.println("\nNo poll created yet.");
-        }
-
         // Chat status
         ChatManager.ChatStats chatStats = chatManager.getStats();
         System.out.println("\nChat Status:");
@@ -328,10 +192,6 @@ public class MainServer {
      */
     private void printHelp() {
         System.out.println("\n╔═══ Instructor Commands ═══════════════════════════════════╗");
-        System.out.println("║ newpoll <Q> | <A;B;C;D> | <correct>  - Create new poll   ║");
-        System.out.println("║ startpoll                            - Activate poll      ║");
-        System.out.println("║ endpoll                              - End poll           ║");
-        System.out.println("║ reveal                               - Reveal answer      ║");
         System.out.println("║ enablechat                           - Enable chat        ║");
         System.out.println("║ disablechat                          - Disable chat       ║");
         System.out.println("║ clearchat                            - Clear chat history ║");
