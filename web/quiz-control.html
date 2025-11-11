@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Quiz Control - Remote Classroom</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      nav {
+        margin-top: 15px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      nav a {
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s;
+      }
+
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .control-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 20px;
+        margin: 20px 0;
+      }
+
+      .panel {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: all 0.3s ease;
+      }
+
+      .panel:hover {
+        box-shadow: 0 8px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .panel h2 {
+        margin-top: 0;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #60a5fa;
+        color: white;
+      }
+
+      .quiz-info {
+        background: rgba(96, 165, 250, 0.2);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(96, 165, 250, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        margin: 15px 0;
+      }
+
+      .info-row {
+        display: flex;
+        justify-content: space-between;
+        margin: 8px 0;
+        color: white;
+      }
+
+      .info-label {
+        font-weight: bold;
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .current-question {
+        background: rgba(251, 191, 36, 0.2);
+        border: 2px solid rgba(251, 191, 36, 0.5);
+        backdrop-filter: blur(10px);
+        border-radius: 12px;
+        padding: 20px;
+        margin: 15px 0;
+      }
+
+      .question-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 15px;
+      }
+
+      .question-number {
+        font-size: 18px;
+        font-weight: bold;
+        color: white;
+      }
+
+      .timer {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-weight: bold;
+        font-size: 16px;
+      }
+
+      .timer.warning {
+        background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+      }
+
+      .timer.safe {
+        background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%);
+      }
+
+      .question-text {
+        font-size: 18px;
+        font-weight: bold;
+        margin: 15px 0;
+        color: white;
+      }
+
+      .options-display {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin: 15px 0;
+      }
+
+      .option-display {
+        padding: 12px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 6px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: white;
+      }
+
+      .option-display.revealed-correct {
+        background: rgba(16, 185, 129, 0.3);
+        border-color: #10b981;
+        font-weight: bold;
+        color: #6ee7b7;
+      }
+
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+      }
+
+      .btn:hover {
+        transform: translateY(-2px) scale(1.02);
+      }
+
+      .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+      }
+
+      .btn-success {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+
+      .btn-success:hover {
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
+      }
+
+      .btn-danger {
+        background: linear-gradient(135deg, #f44336 0%, #d32f2f 100%);
+      }
+
+      .btn-danger:hover {
+        box-shadow: 0 10px 30px rgba(244, 67, 54, 0.5);
+      }
+
+      .control-buttons {
+        display: flex;
+        gap: 10px;
+        margin: 20px 0;
+        flex-wrap: wrap;
+      }
+
+      .control-buttons button {
+        flex: 1;
+        min-width: 120px;
+      }
+
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+        margin: 15px 0;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .stat-value {
+        font-size: 32px;
+        font-weight: bold;
+        color: #60a5fa;
+      }
+
+      .stat-label {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 14px;
+        margin-top: 5px;
+      }
+
+      .answer-distribution {
+        margin: 20px 0;
+      }
+
+      .answer-bar {
+        margin: 10px 0;
+      }
+
+      .answer-bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 5px;
+        font-size: 14px;
+        color: white;
+      }
+
+      .answer-bar-fill {
+        height: 30px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 6px;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .answer-bar-value {
+        height: 100%;
+        transition: width 0.3s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: bold;
+        backdrop-filter: blur(5px);
+      }
+
+      .leaderboard {
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      .leaderboard-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 10px;
+        margin: 5px 0;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 6px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+      }
+
+      .leaderboard-item.top3 {
+        background: rgba(251, 191, 36, 0.2);
+        border: 2px solid rgba(251, 191, 36, 0.5);
+      }
+
+      .leaderboard-rank {
+        font-weight: bold;
+        min-width: 30px;
+        font-size: 16px;
+        color: #60a5fa;
+      }
+
+      .leaderboard-name {
+        flex: 1;
+      }
+
+      .leaderboard-score {
+        font-weight: bold;
+        color: #10b981;
+        font-size: 18px;
+      }
+
+      .status-indicator {
+        display: inline-block;
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+
+      .status-running {
+        background: #4caf50;
+        animation: pulse 1.5s infinite;
+      }
+
+      .status-paused {
+        background: #ff9800;
+      }
+
+      .status-ended {
+        background: #9e9e9e;
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+        }
+        50% {
+          opacity: 0.5;
+        }
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 40px;
+        color: rgba(255, 255, 255, 0.8);
+      }
+
+      .empty-state h2 {
+        color: white;
+        margin-bottom: 15px;
+      }
+
+      .empty-state p {
+        color: rgba(255, 255, 255, 0.7);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+          "
+        >
+          <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M21 3H3c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zM9 17H7v-7h2v7zm4 0h-2V7h2v10zm4 0h-2v-4h2v4z"
+            />
+          </svg>
+          Quiz Control Panel
+        </h1>
+        <nav>
+          <a href="index.html">Home</a>
+          <a href="quiz-builder.html">Quiz Builder</a>
+          <a href="instructor.html">Instructor</a>
+        </nav>
+      </header>
+
+      <div class="content">
+        <div id="noQuizState" class="panel" style="display: none">
+          <div class="empty-state">
+            <h2>No Active Quiz</h2>
+            <p>
+              Select a quiz from the
+              <a href="quiz-builder.html">Quiz Builder</a> to launch it.
+            </p>
+          </div>
+        </div>
+
+        <div id="quizControl" class="control-grid" style="display: none">
+          <!-- Left Panel: Current Question & Controls -->
+          <div>
+            <div class="panel">
+              <h2>
+                <span class="status-indicator status-running"></span>
+                Quiz In Progress
+              </h2>
+
+              <div class="quiz-info" id="quizInfo">
+                <!-- Quiz info will be loaded here -->
+              </div>
+
+              <div id="currentQuestion" class="current-question">
+                <!-- Current question will be displayed here -->
+              </div>
+
+              <div class="control-buttons">
+                <button
+                  onclick="revealAnswer()"
+                  class="btn btn-primary"
+                  id="revealBtn"
+                >
+                  👁️ Reveal Answer
+                </button>
+                <button
+                  onclick="nextQuestion()"
+                  class="btn btn-primary"
+                  id="nextBtn"
+                >
+                  ➡️ Next Question
+                </button>
+                <button onclick="endQuiz()" class="btn btn-danger" id="endBtn">
+                  🛑 End Quiz
+                </button>
+              </div>
+
+              <div class="panel" style="margin-top: 20px">
+                <h3>Answer Distribution</h3>
+                <div id="answerDistribution" class="answer-distribution">
+                  <!-- Answer bars will be shown here -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Panel: Stats & Leaderboard -->
+          <div>
+            <div class="panel">
+              <h2>Statistics</h2>
+              <div class="stats-grid">
+                <div class="stat-card">
+                  <div class="stat-value" id="participantCount">0</div>
+                  <div class="stat-label">Participants</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="responseCount">0</div>
+                  <div class="stat-label">Responses</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="progressValue">0/0</div>
+                  <div class="stat-label">Progress</div>
+                </div>
+                <div class="stat-card">
+                  <div class="stat-value" id="timeRemaining">--</div>
+                  <div class="stat-label">Time Left</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel" style="margin-top: 20px">
+              <h2>Live Leaderboard</h2>
+              <div id="leaderboard" class="leaderboard">
+                <!-- Leaderboard will be shown here -->
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "http://localhost:8090";
+      let currentQuizId = null;
+      let pollingInterval = null;
+
+      // Get quiz ID from URL parameter
+      window.onload = function () {
+        const urlParams = new URLSearchParams(window.location.search);
+        currentQuizId = urlParams.get("quizId");
+
+        if (currentQuizId) {
+          launchQuiz(currentQuizId);
+        } else {
+          document.getElementById("noQuizState").style.display = "block";
+        }
+      };
+
+      async function launchQuiz(quizId) {
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/quizzes/${quizId}/launch`,
+            {
+              method: "POST",
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            currentQuizId = quizId;
+            document.getElementById("noQuizState").style.display = "none";
+            document.getElementById("quizControl").style.display = "grid";
+
+            // Start polling for status
+            startPolling();
+          } else {
+            alert("Failed to launch quiz: " + (data.error || data.message));
+          }
+        } catch (error) {
+          alert("Network error: " + error.message);
+        }
+      }
+
+      function startPolling() {
+        // Poll every 2 seconds
+        pollingInterval = setInterval(updateStatus, 2000);
+        updateStatus(); // Initial call
+      }
+
+      function stopPolling() {
+        if (pollingInterval) {
+          clearInterval(pollingInterval);
+          pollingInterval = null;
+        }
+      }
+
+      async function updateStatus() {
+        if (!currentQuizId) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/quizzes/${currentQuizId}/status`
+          );
+          const data = await response.json();
+
+          if (response.ok) {
+            displayStatus(data);
+          }
+        } catch (error) {
+          console.error("Failed to update status:", error);
+        }
+      }
+
+      function displayStatus(status) {
+        // Update quiz info
+        const quizInfo = document.getElementById("quizInfo");
+        quizInfo.innerHTML = `
+                <div class="info-row">
+                    <span class="info-label">Quiz ID:</span>
+                    <span>${status.quizId}</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Progress:</span>
+                    <span>${status.currentIndex + 1} / ${
+          status.totalQuestions
+        }</span>
+                </div>
+                <div class="info-row">
+                    <span class="info-label">Participants:</span>
+                    <span>${status.participantCount}</span>
+                </div>
+            `;
+
+        // Update current question
+        if (status.currentQuestion) {
+          displayCurrentQuestion(status.currentQuestion, status.revealed);
+        }
+
+        // Update answer distribution
+        displayAnswerDistribution(status.counts);
+
+        // Update stats
+        document.getElementById("participantCount").textContent =
+          status.participantCount;
+        document.getElementById("responseCount").textContent =
+          status.counts.A + status.counts.B + status.counts.C + status.counts.D;
+        document.getElementById("progressValue").textContent = `${
+          status.currentIndex + 1
+        }/${status.totalQuestions}`;
+
+        // Update leaderboard
+        displayLeaderboard(status.leaderboard || []);
+
+        // Update button states
+        document.getElementById("revealBtn").disabled = status.revealed;
+        document.getElementById("nextBtn").disabled = !status.revealed;
+      }
+
+      function displayCurrentQuestion(question, revealed) {
+        const container = document.getElementById("currentQuestion");
+
+        const optionsHtml = question.options
+          .map((opt, idx) => {
+            const letter = String.fromCharCode(65 + idx);
+            // Mark correct answer if revealed
+            const isCorrect = false; // We don't have correct index from status endpoint yet
+            return `
+                    <div class="option-display ${
+                      revealed && isCorrect ? "revealed-correct" : ""
+                    }">
+                        <strong>${letter})</strong> ${opt}
+                    </div>
+                `;
+          })
+          .join("");
+
+        container.innerHTML = `
+                <div class="question-header">
+                    <span class="question-number">Question ${question.id}</span>
+                    <span class="timer safe" id="timer">--:--</span>
+                </div>
+                <div class="question-text">${question.text}</div>
+                <div class="options-display">
+                    ${optionsHtml}
+                </div>
+            `;
+      }
+
+      function displayAnswerDistribution(counts) {
+        const container = document.getElementById("answerDistribution");
+        const total = counts.A + counts.B + counts.C + counts.D;
+
+        const answers = ["A", "B", "C", "D"];
+        const colors = ["#FF6384", "#36A2EB", "#FFCE56", "#4BC0C0"];
+
+        container.innerHTML = answers
+          .map((answer, idx) => {
+            const count = counts[answer];
+            const percentage = total > 0 ? (count / total) * 100 : 0;
+
+            return `
+                    <div class="answer-bar">
+                        <div class="answer-bar-label">
+                            <span><strong>${answer})</strong></span>
+                            <span>${count} votes (${percentage.toFixed(
+              1
+            )}%)</span>
+                        </div>
+                        <div class="answer-bar-fill">
+                            <div class="answer-bar-value" style="width: ${percentage}%; background: ${
+              colors[idx]
+            };">
+                                ${count > 0 ? count : ""}
+                            </div>
+                        </div>
+                    </div>
+                `;
+          })
+          .join("");
+      }
+
+      function displayLeaderboard(leaderboard) {
+        const container = document.getElementById("leaderboard");
+
+        if (!leaderboard || leaderboard.length === 0) {
+          container.innerHTML =
+            '<div style="text-align: center; padding: 20px; color: rgba(255, 255, 255, 0.6);">No participants yet</div>';
+          return;
+        }
+
+        container.innerHTML = leaderboard
+          .map((entry, idx) => {
+            const isTop3 = idx < 3;
+            const medal =
+              idx === 0 ? "🥇" : idx === 1 ? "🥈" : idx === 2 ? "🥉" : "";
+
+            return `
+              <div class="leaderboard-item ${isTop3 ? "top3" : ""}">
+                <span class="leaderboard-rank">${medal || entry.rank}</span>
+                <span class="leaderboard-name">${entry.name}</span>
+                <span class="leaderboard-score">${entry.score}</span>
+              </div>
+            `;
+          })
+          .join("");
+      }
+
+      async function revealAnswer() {
+        if (!currentQuizId) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/quizzes/${currentQuizId}/revealCurrent`,
+            {
+              method: "POST",
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            updateStatus(); // Refresh display
+          } else {
+            alert("Failed to reveal answer: " + (data.error || data.message));
+          }
+        } catch (error) {
+          alert("Network error: " + error.message);
+        }
+      }
+
+      async function nextQuestion() {
+        if (!currentQuizId) return;
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/quizzes/${currentQuizId}/next`,
+            {
+              method: "POST",
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            if (data.completed) {
+              alert("Quiz completed!");
+              stopPolling();
+              window.location.href = "quiz-builder.html";
+            } else {
+              updateStatus(); // Refresh display
+            }
+          } else {
+            alert("Failed to advance: " + (data.error || data.message));
+          }
+        } catch (error) {
+          alert("Network error: " + error.message);
+        }
+      }
+
+      async function endQuiz() {
+        if (!currentQuizId) return;
+
+        if (!confirm("Are you sure you want to end the quiz?")) {
+          return;
+        }
+
+        try {
+          const response = await fetch(
+            `${API_BASE}/api/quizzes/${currentQuizId}/end`,
+            {
+              method: "POST",
+            }
+          );
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            alert("Quiz ended successfully");
+            stopPolling();
+            window.location.href = "quiz-builder.html";
+          } else {
+            alert("Failed to end quiz: " + (data.error || data.message));
+          }
+        } catch (error) {
+          alert("Network error: " + error.message);
+        }
+      }
+
+      // Clean up polling on page unload
+      window.onbeforeunload = function () {
+        stopPolling();
+      };
+    </script>
+  </body>
+</html>
