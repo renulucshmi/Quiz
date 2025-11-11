@@ -62,6 +62,10 @@ public class HttpDashboard {
         // Student endpoints
         server.createContext("/student/join", new StudentJoinHandler());
 
+        // Stats endpoints
+        server.createContext("/stats", new StatsHandler());
+        server.createContext("/instructor/stats", new InstructorStatsHandler());
+
         // Chat endpoints
         server.createContext("/chat/messages", new ChatMessagesHandler());
         server.createContext("/chat/send", new ChatSendHandler());
@@ -236,6 +240,93 @@ public class HttpDashboard {
                 String response = JsonUtil.buildObject(
                         "success", true,
                         "message", "Welcome, " + name + "!");
+                sendJson(exchange, 200, response);
+
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * GET /stats
+     * Returns basic server statistics
+     * Response: {"connectedStudents": 5}
+     */
+    private class StatsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+
+            try {
+                int connectedStudents = students.size();
+
+                String response = JsonUtil.buildObject(
+                        "connectedStudents", connectedStudents);
+                sendJson(exchange, 200, response);
+
+            } catch (Exception e) {
+                sendError(exchange, 500, "Server error: " + e.getMessage());
+            }
+        }
+    }
+
+    /**
+     * GET /instructor/stats
+     * Returns detailed server statistics for instructor
+     * Response: {"totalStudents": 5, "students": [...], "chatEnabled": true, "totalMessages": 10, ...}
+     */
+    private class InstructorStatsHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            setCorsHeaders(exchange);
+
+            if ("OPTIONS".equals(exchange.getRequestMethod())) {
+                exchange.sendResponseHeaders(204, -1);
+                return;
+            }
+
+            if (!"GET".equals(exchange.getRequestMethod())) {
+                sendError(exchange, 405, "Method not allowed");
+                return;
+            }
+
+            try {
+                int totalStudents = students.size();
+                ChatManager.ChatStats chatStats = chatManager.getStats();
+                int pendingQuestions = qaManager.getPendingCount();
+
+                // Build students array
+                StringBuilder studentsArray = new StringBuilder("[");
+                int count = 0;
+                for (Student student : students.values()) {
+                    if (count > 0) studentsArray.append(",");
+                    studentsArray.append("{\"name\":\"").append(student.name).append("\"}");
+                    count++;
+                }
+                studentsArray.append("]");
+
+                // Build full JSON response
+                String response = "{" +
+                        "\"totalStudents\":" + totalStudents + "," +
+                        "\"students\":" + studentsArray.toString() + "," +
+                        "\"totalVotes\":0," +
+                        "\"connectedStudents\":" + totalStudents + "," +
+                        "\"chatEnabled\":" + chatStats.enabled + "," +
+                        "\"totalMessages\":" + chatStats.totalMessages + "," +
+                        "\"activeListeners\":" + chatStats.activeListeners + "," +
+                        "\"pendingQuestions\":" + pendingQuestions +
+                        "}";
                 sendJson(exchange, 200, response);
 
             } catch (Exception e) {

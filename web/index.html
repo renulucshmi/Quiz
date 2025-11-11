@@ -314,9 +314,130 @@
 
       <div id="poll-container" class="poll-container">
         <div id="no-poll" class="no-poll">
-          <div class="icon">🎯</div>
-          <h2>No Active Poll</h2>
-          <p>Waiting for instructor to start a poll...</p>
+          <div
+            class="welcome-animation"
+            style="animation: fadeIn 1s ease-out, float 3s ease-in-out infinite"
+          >
+            <div
+              class="icon"
+              style="
+                font-size: 4em;
+                margin-bottom: 20px;
+                animation: float 2s ease-in-out infinite;
+              "
+            >
+              👋
+            </div>
+            <h2
+              style="
+                font-size: 2.5em;
+                margin-bottom: 15px;
+                background: linear-gradient(135deg, #60a5fa, #93c5fd);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+              "
+            >
+              Welcome to the Classroom!
+            </h2>
+            <p
+              style="
+                font-size: 1.2em;
+                color: rgba(255, 255, 255, 0.9);
+                max-width: 600px;
+                margin: 0 auto;
+                line-height: 1.6;
+              "
+            >
+              Get ready for an interactive learning experience
+            </p>
+            <div
+              style="
+                margin-top: 30px;
+                display: flex;
+                gap: 15px;
+                justify-content: center;
+                flex-wrap: wrap;
+              "
+            >
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 1.5s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">📊</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Live Polls
+                </div>
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 2s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">💬</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Chat
+                </div>
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 2.5s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">❓</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Q&A
+                </div>
+              </div>
+              <div
+                style="
+                  background: rgba(255, 255, 255, 0.15);
+                  padding: 15px 25px;
+                  border-radius: 10px;
+                  animation: fadeIn 3s ease-out;
+                "
+              >
+                <span style="font-size: 1.8em">📝</span>
+                <div
+                  style="
+                    margin-top: 5px;
+                    font-size: 0.9em;
+                    color: rgba(255, 255, 255, 0.8);
+                  "
+                >
+                  Quizzes
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div id="poll-content" class="poll-content" style="display: none">
