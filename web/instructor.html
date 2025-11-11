@@ -1325,17 +1325,6 @@
       // Update Q&A periodically
       setInterval(loadQuestions, 5000);
       loadQuestions();
-
-      document.addEventListener('DOMContentLoaded', () => {
-        const btn = document.querySelector('button.btn.btn-primary[onclick="createAssignmentInstructor()"]');
-        if (btn) {
-          btn.addEventListener('click', (e) => {
-            // If inline handler failed for any reason, this ensures execution
-            console.log('[Instructor] Fallback click handler fired');
-            createAssignmentInstructor();
-          });
-        }
-      });
     </script>
   </body>
 </html>

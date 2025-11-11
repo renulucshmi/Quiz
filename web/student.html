@@ -277,6 +277,9 @@
         class="hidden mt-3 rounded-xl px-4 py-2 text-sm transition-all duration-300"
       ></div>
 
+      <!-- Student toasts (new assignments etc.) -->
+      <div id="studentToasts" style="position:relative; z-index:60; pointer-events:none; margin-top:8px;"></div>
+
       <!-- Login Form -->
       <div id="loginForm" class="mt-4 space-y-3 animate-slideIn">
         <div>
@@ -943,7 +946,7 @@
                     <div class='text-[11px] text-white/50'>${
                       a.description ? escapeHtml(a.description) : ""
                     }</div>
-                    <div class='text-[10px] text-white/40'>Created ${a.createdAt}${
+                    <div class='text-[10px] text-white/40'>Created ${a.createdAt}$${
                   a.dueAt ? ` · Due ${a.dueAt}` : ""
                 }</div>
                   </div>
@@ -958,6 +961,73 @@
             });
           });
         connectAssignmentWS();
+      }
+
+      // Add or update a single assignment in the assignments UI
+      function addOrUpdateAssignment(a) {
+        if (!a || !a.assignmentId) return;
+        const listDiv = document.getElementById("assignmentList");
+        const sel = document.getElementById("uploadAssignmentSelect");
+
+        // Prepare HTML for the assignment entry (matching initAssignmentsUI format)
+        const itemHtml = `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10' data-assignment-id='${escapeHtml(
+          a.assignmentId
+        )}'>
+                  <div class='flex-1'>
+                    <div class='font-semibold text-white/90 text-xs'>${escapeHtml(
+          a.assignmentId
+        )}: ${escapeHtml(a.title || "")}</div>
+                    <div class='text-[11px] text-white/50'>${
+          a.description ? escapeHtml(a.description) : ""
+        }</div>
+                    <div class='text-[10px] text-white/40'>Created ${
+          a.createdAt || ""
+        }${a.dueAt ? ` · Due ${a.dueAt}` : ""}</div>
+                  </div>
+                </div>`;
+
+        // If an entry already exists in the list, replace it; otherwise prepend it
+        // find existing element safely by scanning children and comparing attribute
+        let existing = null;
+        for (let i = 0; i < listDiv.children.length; i++) {
+          const child = listDiv.children[i];
+          try {
+            if (child.getAttribute && child.getAttribute('data-assignment-id') === a.assignmentId) {
+              existing = child;
+              break;
+            }
+          } catch (e) {
+            // ignore and continue
+          }
+        }
+        if (existing) {
+          existing.outerHTML = itemHtml;
+        } else {
+          // If placeholder 'No assignments yet' exists, replace it
+          if (listDiv.innerHTML && listDiv.innerHTML.indexOf('No assignments yet') !== -1) {
+            listDiv.innerHTML = itemHtml;
+          } else {
+            // prepend so newest appears at top
+            listDiv.innerHTML = itemHtml + listDiv.innerHTML;
+          }
+        }
+
+        // Ensure select option exists (don't duplicate)
+        let found = false;
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === a.assignmentId) {
+            // update text
+            sel.options[i].textContent = `${a.assignmentId} - ${a.title}`;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          const opt = document.createElement("option");
+          opt.value = a.assignmentId;
+          opt.textContent = `${a.assignmentId} - ${a.title}`;
+          sel.insertBefore(opt, sel.firstChild);
+        }
       }
 
       function uploadAssignmentFile() {
@@ -1018,8 +1088,24 @@
           assignmentWS.onmessage = (ev) => {
             try {
               const o = JSON.parse(ev.data);
-              log.textContent += (log.textContent ? "\n" : "") + o.type + ": " + (o.assignmentId || "") + (o.filename ? " · " + o.filename : "");
-            } catch {
+              // Log the whole object for debugging
+              try { log.textContent += (log.textContent ? "\n" : "") + JSON.stringify(o); } catch { log.textContent += (log.textContent ? "\n" : "") + String(o); }
+
+              // If a new assignment was created, update UI immediately
+              if (o.type === 'assignment_created') {
+                // The server broadcasts fields: assignmentId, title, description, createdAt, dueAt
+                addOrUpdateAssignment(o);
+                // show a small toast so students notice immediately
+                try { toastAssignmentStudent(`New assignment ${o.assignmentId}: ${o.title}`); } catch (e) {}
+              }
+
+              // Optionally, if assignment upload events arrive, log them and keep behavior
+              if (o.type === 'assignment_upload') {
+                // could display a toast or update uploads UI in future
+                try { log.textContent += ' \u00B7 upload: ' + (o.studentName || '') + ' → ' + (o.filename || ''); } catch {}
+              }
+            } catch (err) {
+              // Non-JSON messages
               log.textContent += (log.textContent ? "\n" : "") + ev.data;
             }
             log.scrollTop = log.scrollHeight;
@@ -1052,6 +1138,47 @@
 
       // If already connected (unlikely on load), init assignments
       if (studentName) initAssignmentsUI();
+
+      // Show a small non-blocking toast for students (pointer-events:none so it doesn't block clicks)
+      function toastAssignmentStudent(message, opts) {
+        try {
+          const container = document.getElementById('studentToasts');
+          if (!container) return;
+          const toast = document.createElement('div');
+          // Inline styles to keep the change minimal and self-contained
+          toast.style.cssText = '\n            pointer-events: auto; display:flex; align-items:center; gap:8px;\n            background: rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.28); color: #e6f0ff;\n            padding:10px 12px; border-radius:10px; margin-bottom:8px; max-width:360px; box-shadow:0 6px 18px rgba(2,6,23,0.6);\n            transform: translateY(8px); opacity: 0; transition: transform 220ms ease, opacity 220ms ease; font-size:13px;\n          ';
+          toast.textContent = message;
+
+          // Insert at top so newest appear first
+          if (container.firstChild) container.insertBefore(toast, container.firstChild);
+          else container.appendChild(toast);
+
+          // Trigger enter animation
+          requestAnimationFrame(() => {
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+          });
+
+          // Auto dismiss after specified duration
+          const timeout = (opts && opts.duration) || 5000;
+          const timer = setTimeout(() => {
+            try {
+              toast.style.transform = 'translateY(8px)';
+              toast.style.opacity = '0';
+              setTimeout(() => { try { toast.remove(); } catch (e) {} }, 240);
+            } catch (e) {}
+          }, timeout);
+
+          // Manual dismiss on click
+          toast.addEventListener('click', () => {
+            clearTimeout(timer);
+            try { toast.remove(); } catch (e) {}
+          });
+        } catch (e) {
+          console.error('Toast error', e);
+        }
+      }
     </script>
   </body>
 </html>
+
