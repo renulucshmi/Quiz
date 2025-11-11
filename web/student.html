@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Student Client - Remote Polling</title>
+    <title>Student Client - Remote Classroom</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       @keyframes fadeIn {
@@ -411,7 +411,9 @@
             />
           </svg>
         </div>
-        <h2 class="text-xl font-semibold text-white mb-2">Waiting for Poll</h2>
+        <h2 class="text-xl font-semibold text-white mb-2">
+          Waiting for Quiz or Vote
+        </h2>
         <p class="text-sm text-white/70">
           The instructor will start a poll shortly...
         </p>
@@ -540,7 +542,6 @@
     <script>
       let ws = null;
       let studentName = "";
-      let currentPollId = null;
       let selectedChoice = null;
 
       // State tracking to prevent re-rendering
@@ -711,9 +712,6 @@
 
           // SECOND: Check for active vote (voting system)
           checkForActiveVote();
-
-          // THIRD: Check for active poll (old system) - only if no quiz
-          checkForActivePoll();
         }, 2000); // Poll every 2 seconds
       }
 
@@ -806,104 +804,6 @@
         } catch (error) {
           console.error("Error checking for active vote:", error);
         }
-      }
-
-      async function checkForActivePoll() {
-        // Only check for polls if no quiz or vote is active
-        if (currentQuizId || currentVoteId) {
-          // Quiz or vote takes priority, skip poll check
-          return;
-        }
-
-        try {
-          const response = await fetch(
-            `/student/poll?name=${encodeURIComponent(studentName)}`
-          );
-          const data = await response.json();
-
-          if (data.active && data.pollId !== currentPollId) {
-            console.log("New poll detected, showing poll");
-            showPoll(data);
-          } else if (!data.active && currentPollId) {
-            console.log("Poll ended, showing waiting");
-            showWaiting();
-          }
-        } catch (error) {
-          console.error("Polling error:", error);
-        }
-      }
-
-      function showPoll(pollData) {
-        console.log("showPoll called with data:", pollData);
-        currentPollId = pollData.pollId;
-        selectedChoice = null;
-
-        // Hide waiting and submitted, show poll
-        console.log("Hiding waiting section, showing poll section");
-        document.getElementById("waitingSection").classList.add("hidden");
-        document.getElementById("submittedSection").classList.add("hidden");
-        document.getElementById("pollSection").classList.remove("hidden");
-        document.getElementById("scoreSection").classList.add("hidden"); // Hide score for polls
-
-        // Set question
-        document.getElementById("pollQuestion").textContent = pollData.question;
-        console.log("Question set:", pollData.question);
-
-        const container = document.getElementById("optionsContainer");
-        container.innerHTML = "";
-
-        // Handle options array (might be JSON string or array)
-        let options = pollData.options;
-        console.log(
-          "Options received (type: " + typeof options + "):",
-          options
-        );
-
-        if (typeof options === "string") {
-          try {
-            options = JSON.parse(options);
-            console.log("Parsed options:", options);
-          } catch (e) {
-            console.error("Error parsing options:", e);
-            options = [];
-          }
-        }
-
-        options.forEach((option, index) => {
-          const choice = String.fromCharCode(65 + index); // A, B, C, D
-          const div = document.createElement("div");
-          div.className =
-            "option-hover glass-light hover:bg-white/20 border border-white/30 rounded-xl px-4 py-3 text-white cursor-pointer transition-all duration-300 ease-in-out flex items-center gap-3 group";
-          div.setAttribute("role", "radio");
-          div.setAttribute("aria-checked", "false");
-          div.setAttribute("tabindex", "0");
-
-          div.onclick = () => selectOption(choice, div);
-          div.onkeydown = (e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              selectOption(choice, div);
-            }
-          };
-
-          div.innerHTML = `
-            <div class="w-5 h-5 rounded-full border-2 border-white/50 flex items-center justify-center transition-all duration-300 group-hover:border-sky-400">
-              <div class="w-0 h-0 rounded-full bg-sky-400 transition-all duration-300"></div>
-            </div>
-            <label class="flex-1 cursor-pointer font-medium">${choice}. ${option}</label>
-          `;
-          container.appendChild(div);
-          console.log("Added option:", choice, option);
-        });
-
-        updateStatus("Active Poll - Answer now!", "active");
-        showAlert("New poll received! Please answer.", "info");
-
-        // Re-enable submit button
-        document.getElementById("submitBtn").disabled = false;
-
-        // Mark as poll mode (not quiz)
-        document.getElementById("submitBtn").setAttribute("data-mode", "poll");
       }
 
       function showQuiz(quizId, quizData) {
@@ -1159,43 +1059,6 @@
               submitBtnText.textContent = "Cast Vote";
               submitBtn.disabled = false;
             });
-        } else {
-          // Poll submission (old system)
-          fetch("/student/answer", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              name: studentName,
-              pollId: currentPollId,
-              choice: selectedChoice,
-            }),
-          })
-            .then((response) => response.json())
-            .then((data) => {
-              if (data.success) {
-                showAlert("Answer submitted successfully!", "success");
-
-                // Show submitted section with animation
-                setTimeout(() => {
-                  document
-                    .getElementById("pollSection")
-                    .classList.add("hidden");
-                  document
-                    .getElementById("submittedSection")
-                    .classList.remove("hidden");
-                  updateStatus("Waiting for results...", "waiting");
-                }, 500);
-              } else {
-                showAlert(data.message || "Failed to submit answer", "error");
-                submitBtnText.textContent = "Submit Answer";
-                submitBtn.disabled = false;
-              }
-            })
-            .catch((error) => {
-              showAlert("Error submitting answer", "error");
-              submitBtnText.textContent = "Submit Answer";
-              submitBtn.disabled = false;
-            });
         }
       }
 
@@ -1285,7 +1148,6 @@
       }
 
       function showWaiting() {
-        currentPollId = null;
         currentQuizId = null;
         currentVoteId = null;
         currentQuestionId = null;
@@ -1295,7 +1157,7 @@
         document.getElementById("waitingSection").classList.remove("hidden");
         document.getElementById("scoreSection").classList.add("hidden");
         document.getElementById("submitBtn").disabled = false;
-        updateStatus("Waiting for next poll...", "waiting");
+        updateStatus("Waiting for next activity...", "waiting");
       }
 
       function updateScoreDisplay(score) {

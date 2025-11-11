@@ -15,8 +15,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import server.Models.Poll;
-import server.Models.PollStats;
 import server.Models.Student;
 
 /**
@@ -26,7 +24,6 @@ import server.Models.Student;
 public class HttpDashboard {
 
     private final HttpServer server;
-    private final PollManager pollManager;
     private final ChatManager chatManager;
     private final QAManager qaManager;
     private final QuestionBank questionBank;
@@ -39,12 +36,11 @@ public class HttpDashboard {
     // Track web-based students separately
     private final ConcurrentHashMap<String, String> webStudents = new ConcurrentHashMap<>();
 
-    public HttpDashboard(int port, PollManager pollManager, ChatManager chatManager, QAManager qaManager,
+    public HttpDashboard(int port, ChatManager chatManager, QAManager qaManager,
             QuestionBank questionBank, QuizManager quizManager,
             ConcurrentHashMap<String, Student> students,
             ConcurrentHashMap<String, ClientHandler> handlers) throws IOException {
         this.port = port;
-        this.pollManager = pollManager;
         this.chatManager = chatManager;
         this.qaManager = qaManager;
         this.questionBank = questionBank;
@@ -57,15 +53,6 @@ public class HttpDashboard {
         // Register API handlers FIRST (before static file handler)
         // Student endpoints
         server.createContext("/student/join", new StudentJoinHandler());
-        server.createContext("/student/poll", new StudentPollHandler());
-        server.createContext("/student/answer", new StudentAnswerHandler());
-
-        // Instructor endpoints
-        server.createContext("/instructor/create", new InstructorCreateHandler());
-        server.createContext("/instructor/start", new InstructorStartHandler());
-        server.createContext("/instructor/end", new InstructorEndHandler());
-        server.createContext("/instructor/reveal", new InstructorRevealHandler());
-        server.createContext("/instructor/stats", new InstructorStatsHandler());
 
         // Chat endpoints
         server.createContext("/chat/messages", new ChatMessagesHandler());
@@ -94,9 +81,6 @@ public class HttpDashboard {
         server.createContext("/api/votes/create", new VoteCreateHandler());
         server.createContext("/api/votes/", new VoteActionHandler()); // Handles /{id}/open, /{id}/close, /{id}/status
         server.createContext("/api/votes", new VotesListHandler()); // List all votes
-        
-        // Stats endpoint
-        server.createContext("/stats", new StatsHandler());
 
         // Static file handler LAST (catches everything else)
         server.createContext("/", new StaticFileHandler());
@@ -119,55 +103,6 @@ public class HttpDashboard {
     public void stop() {
         server.stop(0);
         System.out.println("[HttpDashboard] Dashboard server stopped");
-    }
-
-    /**
-     * Handler for /stats endpoint - returns JSON poll statistics.
-     */
-    private class StatsHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            // CORS headers
-            exchange.getResponseHeaders().add("Access-Control-Allow-Origin", "*");
-            exchange.getResponseHeaders().add("Content-Type", "application/json");
-
-            try {
-                PollStats stats = pollManager.getStats();
-                String json = buildStatsJson(stats);
-
-                byte[] response = json.getBytes("UTF-8");
-                exchange.sendResponseHeaders(200, response.length);
-                OutputStream os = exchange.getResponseBody();
-                os.write(response);
-                os.close();
-
-            } catch (Exception e) {
-                String error = "{\"error\":\"" + e.getMessage() + "\"}";
-                byte[] response = error.getBytes("UTF-8");
-                exchange.sendResponseHeaders(500, response.length);
-                exchange.getResponseBody().write(response);
-                exchange.getResponseBody().close();
-            }
-        }
-
-        private String buildStatsJson(PollStats stats) {
-            if (!stats.active && stats.question == null) {
-                return JsonUtil.buildObject(
-                        "active", false,
-                        "message", "No active poll");
-            }
-
-            return JsonUtil.buildObject(
-                    "active", stats.active,
-                    "pollId", stats.pollId,
-                    "question", stats.question,
-                    "options", stats.options,
-                    "counts", stats.counts,
-                    "percentages", stats.percentages,
-                    "totalVotes", stats.totalVotes,
-                    "revealed", stats.revealed,
-                    "correct", stats.correctChoice);
-        }
     }
 
     /**
@@ -292,409 +227,6 @@ public class HttpDashboard {
         }
     }
 
-    /**
-     * Student endpoint: GET /student/poll?name=Alice
-     * Response: {"active": true, "pollId": "q1", "question": "...", "options":
-     * ["A", "B", "C", "D"]}
-     */
-    private class StudentPollHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"GET".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                String query = exchange.getRequestURI().getQuery();
-                String name = getQueryParam(query, "name");
-
-                if (name == null || !students.containsKey(name)) {
-                    sendError(exchange, 401, "Not logged in");
-                    return;
-                }
-
-                Poll currentPoll = pollManager.getCurrentPoll();
-
-                if (currentPoll == null || !currentPoll.active) {
-                    String response = JsonUtil.buildObject(
-                            "active", false,
-                            "message", "No active poll");
-                    sendJson(exchange, 200, response);
-                    return;
-                }
-
-                String response = JsonUtil.buildObject(
-                        "active", true,
-                        "pollId", currentPoll.id,
-                        "question", currentPoll.question,
-                        "options", currentPoll.options);
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Student endpoint: POST /student/answer
-     * Request: {"name": "Alice", "pollId": "q1", "choice": "B"}
-     * Response: {"success": true, "message": "Answer submitted"}
-     */
-    private class StudentAnswerHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                String body = readBody(exchange);
-                Map<String, String> data = parseJson(body);
-
-                String name = data.get("name");
-                String pollId = data.get("pollId");
-                String choice = data.get("choice");
-
-                if (name == null || !students.containsKey(name)) {
-                    sendError(exchange, 401, "Not logged in");
-                    return;
-                }
-
-                if (pollId == null || choice == null) {
-                    sendError(exchange, 400, "Missing pollId or choice");
-                    return;
-                }
-
-                Poll currentPoll = pollManager.getCurrentPoll();
-
-                if (currentPoll == null || !currentPoll.id.equals(pollId)) {
-                    sendError(exchange, 400, "Invalid poll");
-                    return;
-                }
-
-                if (!currentPoll.active) {
-                    sendError(exchange, 400, "Poll is not active");
-                    return;
-                }
-
-                Student student = students.get(name);
-                if (student.currentPollAnswered != null && student.currentPollAnswered.equals(pollId)) {
-                    sendError(exchange, 400, "Already answered");
-                    return;
-                }
-
-                student.currentPollAnswered = pollId;
-                pollManager.tallyAnswer(pollId, choice);
-
-                System.out.println("[Web] " + name + " answered: " + choice);
-
-                String response = JsonUtil.buildObject(
-                        "success", true,
-                        "message", "Answer submitted successfully!");
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Instructor endpoint: POST /instructor/create
-     * Request: {"question": "...", "options": ["A", "B", "C", "D"], "correct": "B"}
-     * Response: {"success": true, "pollId": "q1"}
-     */
-    private class InstructorCreateHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                String body = readBody(exchange);
-                Map<String, Object> data = parseJsonObject(body);
-
-                String question = (String) data.get("question");
-                String[] options = parseOptionsArray(data.get("options"));
-                String correct = (String) data.get("correct");
-
-                if (question == null || options == null || correct == null) {
-                    sendError(exchange, 400, "Missing required fields");
-                    return;
-                }
-
-                if (options.length != 4) {
-                    sendError(exchange, 400, "Must provide exactly 4 options");
-                    return;
-                }
-
-                // Convert correct choice letter to index
-                int correctIndex = Poll.choiceToIndex(correct);
-                if (correctIndex < 0 || correctIndex >= 4) {
-                    sendError(exchange, 400, "Correct answer must be A, B, C, or D");
-                    return;
-                }
-
-                Poll poll = pollManager.createPoll(question, options, correctIndex, 300);
-
-                System.out.println("[Web] Poll created: " + poll.id);
-
-                String response = JsonUtil.buildObject(
-                        "success", true,
-                        "pollId", poll.id,
-                        "message", "Poll created successfully!");
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Instructor endpoint: POST /instructor/start
-     * Request: {}
-     * Response: {"success": true}
-     */
-    private class InstructorStartHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                Poll poll = pollManager.getCurrentPoll();
-
-                if (poll == null) {
-                    sendError(exchange, 400, "No poll to start");
-                    return;
-                }
-
-                if (poll.active) {
-                    sendError(exchange, 400, "Poll already active");
-                    return;
-                }
-
-                pollManager.startPoll();
-
-                // Reset all students' answers
-                for (Student student : students.values()) {
-                    student.currentPollAnswered = null;
-                }
-
-                System.out.println("[Web] Poll started");
-
-                String response = JsonUtil.buildObject(
-                        "success", true,
-                        "message", "Poll started!");
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Instructor endpoint: POST /instructor/end
-     * Request: {}
-     * Response: {"success": true}
-     */
-    private class InstructorEndHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                Poll poll = pollManager.getCurrentPoll();
-
-                if (poll == null) {
-                    sendError(exchange, 400, "No poll to end");
-                    return;
-                }
-
-                if (!poll.active) {
-                    sendError(exchange, 400, "Poll not active");
-                    return;
-                }
-
-                pollManager.endPoll();
-
-                System.out.println("[Web] Poll ended");
-
-                String response = JsonUtil.buildObject(
-                        "success", true,
-                        "message", "Poll ended!");
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Instructor endpoint: POST /instructor/reveal
-     * Request: {}
-     * Response: {"success": true}
-     */
-    private class InstructorRevealHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"POST".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                Poll poll = pollManager.getCurrentPoll();
-
-                if (poll == null) {
-                    sendError(exchange, 400, "No poll to reveal");
-                    return;
-                }
-
-                if (poll.active) {
-                    sendError(exchange, 400, "End poll before revealing");
-                    return;
-                }
-
-                pollManager.revealAnswer();
-
-                System.out.println("[Web] Answer revealed");
-
-                String response = JsonUtil.buildObject(
-                        "success", true,
-                        "message", "Answer revealed!");
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-    }
-
-    /**
-     * Instructor endpoint: GET /instructor/stats
-     * Response: {"students": [...], "totalStudents": 5, "totalVotes": 3,
-     * "pollsCreated": 1}
-     */
-    private class InstructorStatsHandler implements HttpHandler {
-        @Override
-        public void handle(HttpExchange exchange) throws IOException {
-            setCorsHeaders(exchange);
-
-            if ("OPTIONS".equals(exchange.getRequestMethod())) {
-                exchange.sendResponseHeaders(204, -1);
-                return;
-            }
-
-            if (!"GET".equals(exchange.getRequestMethod())) {
-                sendError(exchange, 405, "Method not allowed");
-                return;
-            }
-
-            try {
-                PollStats stats = pollManager.getStats();
-
-                // Get student list
-                String studentsJson = "[";
-                boolean first = true;
-                for (Student s : students.values()) {
-                    if (!first)
-                        studentsJson += ",";
-                    first = false;
-
-                    Poll currentPoll = pollManager.getCurrentPoll();
-                    boolean answered = currentPoll != null &&
-                            s.currentPollAnswered != null &&
-                            s.currentPollAnswered.equals(currentPoll.id);
-
-                    studentsJson += JsonUtil.buildObject(
-                            "name", s.name,
-                            "answered", answered);
-                }
-                studentsJson += "]";
-
-                String response = String.format(
-                        "{\"students\":%s,\"totalStudents\":%d,\"totalVotes\":%d,\"pollsCreated\":1,\"currentPoll\":%s}",
-                        studentsJson,
-                        students.size(),
-                        stats.totalVotes,
-                        buildCurrentPollJson(stats));
-
-                sendJson(exchange, 200, response);
-
-            } catch (Exception e) {
-                sendError(exchange, 500, "Server error: " + e.getMessage());
-            }
-        }
-
-        private String buildCurrentPollJson(PollStats stats) {
-            if (!stats.active && stats.question == null) {
-                return "null";
-            }
-
-            return JsonUtil.buildObject(
-                    "active", stats.active,
-                    "pollId", stats.pollId,
-                    "question", stats.question,
-                    "revealed", stats.revealed);
-        }
-    }
-
     // ========== Helper Methods ==========
 
     private void setCorsHeaders(HttpExchange exchange) {
@@ -705,8 +237,7 @@ public class HttpDashboard {
     }
 
     private String readBody(HttpExchange exchange) throws IOException {
-        InputStreamReader isr = new InputStreamReader(exchange.getRequestBody(), "UTF-8");
-        BufferedReader br = new BufferedReader(isr);
+        BufferedReader br = new BufferedReader(new InputStreamReader(exchange.getRequestBody(), "UTF-8"));
         StringBuilder sb = new StringBuilder();
         String line;
         while ((line = br.readLine()) != null) {
