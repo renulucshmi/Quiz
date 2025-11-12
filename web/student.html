@@ -541,7 +541,7 @@
       </div>
 
           <!-- Assignments Section -->
-          <div id="assignmentsSection" class="mt-8 glass-light rounded-xl p-4 border border-white/30">
+          <div id="assignmentsSection" class="hidden mt-8 glass-light rounded-xl p-4 border border-white/30">
               <h2 class="text-white/90 font-semibold mb-3 flex items-center gap-2">
                   <svg
                           class="w-5 h-5"
@@ -617,15 +617,16 @@
                   >
                       WS: connecting...
                   </div>
-<!--                  <div-->
-<!--                          id="assignmentWsLog"-->
-<!--                          class="mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"-->
-<!--                  ></div>-->
+                  <div
+                          id="assignmentWsLog"
+                          class="hidden mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"
+                  ></div>
               </div>
           </div>
-
+          <div class="py-2">
+          </div>
           <!-- Shown when there are no assignments available -->
-          <div id="noAssignmentsNotice" class="hidden mt-6 glass-light rounded-xl p-4 border border-white/30 text-center text-white/70">
+          <div id="noAssignmentsNotice" class="mt-16 glass-light rounded-xl p-4 border border-white/30 text-center text-white/70">
             <svg class="w-8 h-8 mx-auto text-white/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
             <div class="font-semibold">No assignments available</div>
             <div class="text-sm text-white/60">There are currently no assignments to submit.</div>
