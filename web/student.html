@@ -540,8 +540,8 @@
         </div>
       </div>
 
-       <!-- Assignments Section -->
-       <div class="mt-8 glass-light rounded-xl p-4 border border-white/30">
+          <!-- Assignments Section -->
+          <div id="assignmentsSection" class="mt-8 glass-light rounded-xl p-4 border border-white/30">
               <h2 class="text-white/90 font-semibold mb-3 flex items-center gap-2">
                   <svg
                           class="w-5 h-5"
@@ -587,6 +587,7 @@
                               class="w-full text-white text-xs"
                       />
                   </div>
+
                   <button
                           onclick="uploadAssignmentFile()"
                           class="w-full btn-ripple bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
@@ -616,17 +617,25 @@
                   >
                       WS: connecting...
                   </div>
-                  <div
-                          id="assignmentWsLog"
-                          class="mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"
-                  ></div>
+<!--                  <div-->
+<!--                          id="assignmentWsLog"-->
+<!--                          class="mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"-->
+<!--                  ></div>-->
               </div>
+          </div>
+
+          <!-- Shown when there are no assignments available -->
+          <div id="noAssignmentsNotice" class="hidden mt-6 glass-light rounded-xl p-4 border border-white/30 text-center text-white/70">
+            <svg class="w-8 h-8 mx-auto text-white/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="font-semibold">No assignments available</div>
+            <div class="text-sm text-white/60">There are currently no assignments to submit.</div>
           </div>
       </div>
 
     </div>
 
     <script>
+      console.log("Script in Student page");
       let ws = null;
       let studentName = "";
       let selectedChoice = null;
@@ -731,6 +740,7 @@
       }
 
       function connectToServer() {
+        console.log("connecting to server...");
         const nameInput = document.getElementById("studentName");
         studentName = nameInput.value.trim();
 
@@ -1276,7 +1286,8 @@
             const listDiv = document.getElementById("assignmentList");
             const sel = document.getElementById("uploadAssignmentSelect");
             sel.innerHTML = "";
-            listDiv.innerHTML =
+
+           listDiv.innerHTML =
               (data.assignments || []).map((a) => {
                 return `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10'>
                   <div class='flex-1'>
@@ -1293,6 +1304,37 @@
                 </div>`;
               }).join("") ||
               '<div class="text-white/50 text-xs">No assignments yet</div>';
+            // Render assignment entries (if any). If none, we'll hide the whole assignments section.
+            listDiv.innerHTML = (data.assignments || []).map((a) => {
+              return `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10' data-assignment-id='${escapeHtml(
+                a.assignmentId
+              )}'>
+                  <div class='flex-1'>
+                    <div class='font-semibold text-white/90 text-xs'>${a.assignmentId}: ${escapeHtml(
+                      a.title
+                    )}</div>
+                    <div class='text-[11px] text-white/50'>${
+                       a.description ? escapeHtml(a.description) : ""
+                    }</div>
+                    <div class='text-[10px] text-white/40'>Created ${a.createdAt}${
+                  a.dueAt ? ` · Due ${a.dueAt}` : ""
+                }</div>
+                  </div>
+                </div>`;
+            }).join("");
+
+            const hasAssignments = (data.assignments || []).length > 0;
+            const assignmentsSection = document.getElementById('assignmentsSection');
+            const noNotice = document.getElementById('noAssignmentsNotice');
+            if (hasAssignments) {
+              assignmentsSection.classList.remove('hidden');
+              noNotice.classList.add('hidden');
+            } else {
+              // Hide the full assignments UI (list/select/upload) and show a friendly notice
+              assignmentsSection.classList.add('hidden');
+             noNotice.classList.remove('hidden');
+            }
+
             (data.assignments || []).forEach((a) => {
               const opt = document.createElement("option");
               opt.value = a.assignmentId;
@@ -1306,6 +1348,13 @@
       // Add or update a single assignment in the assignments UI
       function addOrUpdateAssignment(a) {
         if (!a || !a.assignmentId) return;
+        // Ensure assignments UI is visible when a new assignment arrives
+        try {
+          const assignmentsSection = document.getElementById('assignmentsSection');
+          const noNotice = document.getElementById('noAssignmentsNotice');
+          if (assignmentsSection) assignmentsSection.classList.remove('hidden');
+          if (noNotice) noNotice.classList.add('hidden');
+        } catch (e) {}
         const listDiv = document.getElementById("assignmentList");
         const sel = document.getElementById("uploadAssignmentSelect");
 
@@ -1484,7 +1533,6 @@
         try {
           const container = document.getElementById('studentToasts');
           if (!container) return;
-          const toast = document.createElement('div');
           // Inline styles to keep the change minimal and self-contained
           toast.style.cssText = '\n            pointer-events: auto; display:flex; align-items:center; gap:8px;\n            background: rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.28); color: #e6f0ff;\n            padding:10px 12px; border-radius:10px; margin-bottom:8px; max-width:360px; box-shadow:0 6px 18px rgba(2,6,23,0.6);\n            transform: translateY(8px); opacity: 0; transition: transform 220ms ease, opacity 220ms ease; font-size:13px;\n          ';
           toast.textContent = message;
