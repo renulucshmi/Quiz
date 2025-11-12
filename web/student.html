@@ -396,90 +396,6 @@
           </button>
         </div>
 
-        <!-- Assignments Section -->
-        <div class="mt-4 glass-light rounded-xl p-4 border border-white/30">
-          <h2 class="text-white/90 font-semibold mb-3 flex items-center gap-2">
-            <svg
-              class="w-5 h-5"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                stroke-width="2"
-                d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"
-              />
-            </svg>
-            Assignments
-          </h2>
-          <div class="space-y-2">
-            <div
-              id="assignmentList"
-              class="space-y-2 text-sm text-white/80 max-h-40 overflow-y-auto"
-            ></div>
-            <div class="mt-2">
-              <label
-                class="block text-white/70 text-xs mb-1"
-                for="uploadAssignmentSelect"
-              >
-                Select Assignment
-              </label>
-              <select
-                id="uploadAssignmentSelect"
-                class="w-full rounded-lg bg-white/10 text-white px-3 py-2 text-sm border border-white/30 focus:outline-none"
-              >
-                <!-- Options will be populated by JavaScript -->
-              </select>
-            </div>
-            <div class="mt-2">
-              <label class="block text-white/70 text-xs mb-1" for="uploadFileInput"
-                >File</label
-              >
-              <input
-                type="file"
-                id="uploadFileInput"
-                class="w-full text-white text-xs"
-              />
-            </div>
-            <button
-              onclick="uploadAssignmentFile()"
-              class="w-full btn-ripple bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
-            >
-              <svg
-                class="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  stroke-width="2"
-                  d="M4 4v16h16M4 4l8 8"
-                />
-              </svg>
-              <span>Upload</span>
-            </button>
-            <div
-              id="uploadStatus"
-              class="text-xs text-white/70 mt-1"
-            ></div>
-            <div
-              id="assignmentWsStatus"
-              class="text-xs text-white/60 mt-2"
-            >
-              WS: connecting...
-            </div>
-            <div
-              id="assignmentWsLog"
-              class="mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"
-            ></div>
-          </div>
-        </div>
-      </div>
-
       <!-- Waiting Section -->
       <div id="waitingSection" class="hidden mt-6 text-center animate-fadeIn">
         <div class="mb-4">
@@ -623,6 +539,91 @@
           </div>
         </div>
       </div>
+
+       <!-- Assignments Section -->
+       <div class="mt-8 glass-light rounded-xl p-4 border border-white/30">
+              <h2 class="text-white/90 font-semibold mb-3 flex items-center gap-2">
+                  <svg
+                          class="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                  >
+                      <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                  </svg>
+                  Assignments
+              </h2>
+              <div class="space-y-2">
+                  <div
+                          id="assignmentList"
+                          class="space-y-2 text-sm text-white/80 max-h-40 overflow-y-auto"
+                  ></div>
+                  <div class="mt-2">
+                      <label
+                              class="block text-white/70 text-xs mb-1"
+                              for="uploadAssignmentSelect"
+                      >
+                          Select Assignment
+                      </label>
+                      <select
+                              id="uploadAssignmentSelect"
+                              class="w-full rounded-lg bg-white/10 text-white px-3 py-2 text-sm border border-white/30 focus:outline-none"
+                      >
+                          <!-- Options will be populated by JavaScript -->
+                      </select>
+                  </div>
+                  <div class="mt-2">
+                      <label class="block text-white/70 text-xs mb-1" for="uploadFileInput"
+                      >File</label
+                      >
+                      <input
+                              type="file"
+                              id="uploadFileInput"
+                              class="w-full text-white text-xs"
+                      />
+                  </div>
+                  <button
+                          onclick="uploadAssignmentFile()"
+                          class="w-full btn-ripple bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                      <svg
+                              class="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                      >
+                          <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M4 4v16h16M4 4l8 8"
+                          />
+                      </svg>
+                      <span>Upload</span>
+                  </button>
+                  <div
+                          id="uploadStatus"
+                          class="text-xs text-white/70 mt-1"
+                  ></div>
+                  <div
+                          id="assignmentWsStatus"
+                          class="text-xs text-white/60 mt-2"
+                  >
+                      WS: connecting...
+                  </div>
+                  <div
+                          id="assignmentWsLog"
+                          class="mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"
+                  ></div>
+              </div>
+          </div>
+      </div>
+
     </div>
 
     <script>
