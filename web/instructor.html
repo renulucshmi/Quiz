@@ -851,6 +851,68 @@
           style="max-height: 400px; overflow-y: auto"
         ></div>
       </div>
+
+      <!-- Assignments Management Section -->
+      <div class="card">
+        <h2 style="margin-bottom: 20px; color: #2563eb; display: flex; align-items: center; gap: 10px;">
+          <svg style="width: 28px; height: 28px" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          Assignments
+        </h2>
+        <div class="form-group">
+          <label for="aTitle">Title</label>
+          <input id="aTitle" type="text" placeholder="e.g., Homework 1" />
+        </div>
+        <div class="form-group">
+          <label for="aDesc">Description</label>
+          <input id="aDesc" type="text" placeholder="Short description (optional)" />
+        </div>
+        <div class="form-group">
+          <label for="aDueLocal">Due Date/Time (local)</label>
+          <input id="aDueLocal" type="datetime-local" />
+          <small style="color:white;opacity:.7;display:block;margin-top:6px">Will be sent as UTC (seconds added automatically). Leave blank for no due date.</small>
+        </div>
+        <div style="display:flex; gap:10px; flex-wrap: wrap; margin-bottom: 10px;">
+          <button class="btn btn-primary" onclick="createAssignmentInstructor()">Create Assignment</button>
+          <button class="btn btn-start" onclick="loadAssignmentsInstructor()">Refresh List</button>
+          <span id="aCreateMsg" class="status-badge status-inactive" style="display:none"></span>
+        </div>
+        <div style="overflow-x:auto">
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding: 8px; color:white">ID</th>
+                <th style="text-align:left; padding: 8px; color:white">Title</th>
+                <th style="text-align:left; padding: 8px; color:white">Created</th>
+                <th style="text-align:left; padding: 8px; color:white">Due</th>
+                <th style="text-align:left; padding: 8px; color:white">Uploads</th>
+              </tr>
+            </thead>
+            <tbody id="aTblBody"></tbody>
+          </table>
+        </div>
+        <div id="uploadsPanel" style="display:none; margin-top:12px;">
+          <h3 style="color:white; margin-bottom:8px">Uploads for <span id="uploadsFor"></span></h3>
+          <table style="width:100%; border-collapse: collapse;">
+            <thead>
+              <tr>
+                <th style="text-align:left; padding: 8px; color:white">Student</th>
+                <th style="text-align:left; padding: 8px; color:white">Filename</th>
+                <th style="text-align:left; padding: 8px; color:white">Size</th>
+                <th style="text-align:left; padding: 8px; color:white">Uploaded</th>
+                <th style="text-align:left; padding: 8px; color:white">Action</th>
+              </tr>
+            </thead>
+            <tbody id="uploadsBody"></tbody>
+          </table>
+        </div>
+        <div id="aToasts" style="position:relative; margin-top:10px;"></div>
+        <div style="margin-top:12px">
+          <span id="aWsStatus" class="status-badge status-inactive">WS: disconnected</span>
+          <div id="aWsLog" style="display: none !important; max-height:140px; overflow:auto; background:#0b1324; color:#93c5fd; padding:10px; border-radius:8px; margin-top:8px; font-family: ui-monospace,monospace; font-size: 12px;"></div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -1483,6 +1545,126 @@
         div.textContent = text;
         return div.innerHTML;
       }
+
+      // ==================== Assignments (Instructor) ====================
+      function createAssignmentInstructor() {
+        console.log('[Instructor] createAssignmentInstructor invoked');
+        const title = document.getElementById('aTitle').value.trim();
+        const description = document.getElementById('aDesc').value.trim();
+        const localVal = document.getElementById('aDueLocal').value; // format: YYYY-MM-DDTHH:MM
+        let dueAt = '';
+        if (localVal) {
+          // Convert local datetime (no timezone) to UTC ISO string by assuming local timezone
+          try {
+            const [datePart, timePart] = localVal.split('T');
+            if (datePart && timePart) {
+              const [y, m, d] = datePart.split('-').map(Number);
+              const [hh, mm] = timePart.split(':').map(Number);
+              const localDate = new Date(y, m - 1, d, hh, mm, 0, 0); // local time
+              const utcIso = new Date(localDate.getTime()).toISOString(); // includes seconds + Z
+              dueAt = utcIso;
+              // Prevent past date
+              if (localDate.getTime() < Date.now()) {
+                showAlert('Due date is in the past. Please choose a future time.', 'error');
+                return;
+              }
+            }
+          } catch (e) {
+            showAlert('Invalid due date format', 'error');
+            return;
+          }
+        }
+        if (!title) { showAlert('Title is required', 'error'); return; }
+        fetch('/assignment/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title, description, dueAt })
+        }).then(r=>r.json()).then(d=>{
+          const el = document.getElementById('aCreateMsg');
+          el.style.display='inline-block';
+          if (d.success) { el.textContent = `Created ${d.assignmentId}`; el.className = 'status-badge status-active';
+            document.getElementById('aTitle').value='';
+            document.getElementById('aDesc').value='';
+            document.getElementById('aDueLocal').value='';
+            loadAssignmentsInstructor();
+          }
+          else { el.textContent = d.error || 'Error'; el.className = 'status-badge status-inactive'; }
+        }).catch(_=> showAlert('Error creating assignment','error'));
+      }
+
+      function loadAssignmentsInstructor() {
+        fetch('/assignment/list').then(r=>r.json()).then(data=>{
+          const tb = document.getElementById('aTblBody');
+          tb.innerHTML='';
+          (data.assignments||[]).forEach(a=>{
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td style='padding:8px;color:white'>${a.assignmentId}</td>
+              <td style='padding:8px;color:white'>${escapeHtml(a.title||'')}</td>
+              <td style='padding:8px;color:white'>${a.createdAt||''}</td>
+              <td style='padding:8px;color:white'>${a.dueAt||''}</td>
+              <td style='padding:8px'>
+                <button class='btn btn-primary' onclick="viewUploadsInstructor('${a.assignmentId}')">View</button>
+              </td>`;
+            tb.appendChild(tr);
+          });
+        });
+      }
+
+      function viewUploadsInstructor(id) {
+        fetch('/assignment/uploads?id='+encodeURIComponent(id)).then(r=>r.json()).then(data=>{
+          document.getElementById('uploadsFor').textContent = id;
+          const tb = document.getElementById('uploadsBody');
+          tb.innerHTML = '';
+          (data.uploads||[]).forEach(u=>{
+            const tr = document.createElement('tr');
+            const sizeStr = formatBytes(u.size||0);
+            const dl = `/assignment/download?id=${encodeURIComponent(id)}&file=${encodeURIComponent(u.storedName)}`;
+            tr.innerHTML = `
+              <td style='padding:8px;color:white'>${escapeHtml(u.studentName||'')}</td>
+              <td style='padding:8px;color:white'>${escapeHtml(u.filename||'')}</td>
+              <td style='padding:8px;color:white'>${sizeStr}</td>
+              <td style='padding:8px;color:white'>${new Date(u.uploadedAt).toLocaleString()}</td>
+              <td style='padding:8px'><a class='btn btn-primary' href='${dl}'>Download</a></td>`;
+            tb.appendChild(tr);
+          });
+          document.getElementById('uploadsPanel').style.display = 'block';
+        });
+      }
+
+      function formatBytes(bytes){
+        const sizes=['B','KB','MB','GB','TB'];
+        if(bytes===0) return '0 B';
+        const i=Math.floor(Math.log(bytes)/Math.log(1024));
+        return (bytes/Math.pow(1024,i)).toFixed(1)+' '+sizes[i];
+      }
+
+      function toastAssignment(msg){
+        const c = document.getElementById('aToasts');
+        const div = document.createElement('div');
+        div.style.cssText='margin-top:6px;padding:10px;border-radius:8px;background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);color:#e5e7eb;';
+        div.textContent = msg;
+        c.appendChild(div);
+        setTimeout(()=>{div.remove();}, 6000);
+      }
+
+      function connectWSAssignments() {
+        try {
+          const ws = new WebSocket('ws://'+location.hostname+':8081/assignments');
+          const status = document.getElementById('aWsStatus');
+          const log = document.getElementById('aWsLog');
+          ws.onopen = ()=>{ status.textContent='WS: connected'; status.className='status-badge status-active'; };
+          ws.onclose = ()=>{ status.textContent='WS: disconnected'; status.className='status-badge status-inactive'; setTimeout(connectWSAssignments, 2000); };
+          ws.onmessage = ev=>{
+            log.textContent += (log.textContent?'\n':'') + ev.data;
+            try { const o = JSON.parse(ev.data); if(o.type==='assignment_created'){ toastAssignment(`New assignment ${o.assignmentId}: ${o.title}`);} if(o.type==='assignment_upload'){ toastAssignment(`${o.studentName} uploaded ${o.filename} for ${o.assignmentId}`);} } catch {}
+            log.scrollTop = log.scrollHeight;
+          };
+        } catch (e) { console.error('WS error', e); }
+      }
+      // boot
+      loadAssignmentsInstructor();
+      connectWSAssignments();
 
       // Update chat status periodically
       setInterval(updateChatStatus, 3000);

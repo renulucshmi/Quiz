@@ -277,6 +277,9 @@
         class="hidden mt-3 rounded-xl px-4 py-2 text-sm transition-all duration-300"
       ></div>
 
+      <!-- Student toasts (new assignments etc.) -->
+      <div id="studentToasts" style="position:relative; z-index:60; pointer-events:none; margin-top:8px;"></div>
+
       <!-- Login Form -->
       <div id="loginForm" class="mt-4 space-y-3 animate-slideIn">
         <div>
@@ -392,7 +395,6 @@
             <span>Ask</span>
           </button>
         </div>
-      </div>
 
       <!-- Waiting Section -->
       <div id="waitingSection" class="hidden mt-6 text-center animate-fadeIn">
@@ -537,12 +539,108 @@
           </div>
         </div>
       </div>
+
+          <!-- Assignments Section -->
+          <div id="assignmentsSection" class="hidden mt-8 glass-light rounded-xl p-4 border border-white/30">
+              <h2 class="text-white/90 font-semibold mb-3 flex items-center gap-2">
+                  <svg
+                          class="w-5 h-5"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                  >
+                      <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 8v8m4-4H8m13 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                  </svg>
+                  Assignments
+              </h2>
+              <div class="space-y-2">
+                  <div
+                          id="assignmentList"
+                          class="space-y-2 text-sm text-white/80 max-h-40 overflow-y-auto"
+                  ></div>
+                  <div class="mt-2">
+                      <label
+                              class="block text-white/70 text-xs mb-1"
+                              for="uploadAssignmentSelect"
+                      >
+                          Select Assignment
+                      </label>
+                      <select
+                              id="uploadAssignmentSelect"
+                              class="w-full rounded-lg bg-white/10 text-white px-3 py-2 text-sm border border-white/30 focus:outline-none"
+                      >
+                          <!-- Options will be populated by JavaScript -->
+                      </select>
+                  </div>
+                  <div class="mt-2">
+                      <label class="block text-white/70 text-xs mb-1" for="uploadFileInput"
+                      >File</label
+                      >
+                      <input
+                              type="file"
+                              id="uploadFileInput"
+                              class="w-full text-white text-xs"
+                      />
+                  </div>
+
+                  <button
+                          onclick="uploadAssignmentFile()"
+                          class="w-full btn-ripple bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white rounded-xl px-4 py-2 text-sm font-medium transition-all duration-300 flex items-center justify-center gap-2"
+                  >
+                      <svg
+                              class="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                      >
+                          <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M4 4v16h16M4 4l8 8"
+                          />
+                      </svg>
+                      <span>Upload</span>
+                  </button>
+                  <div
+                          id="uploadStatus"
+                          class="text-xs text-white/70 mt-1"
+                  ></div>
+                  <div
+                          id="assignmentWsStatus"
+                          class="text-xs text-white/60 mt-2"
+                  >
+                      WS: connecting...
+                  </div>
+                  <div
+                          id="assignmentWsLog"
+                          class="hidden mt-2 bg-white/10 rounded-lg p-2 text-[11px] font-mono h-24 overflow-y-auto"
+                  ></div>
+              </div>
+          </div>
+          <div class="py-2">
+          </div>
+          <!-- Shown when there are no assignments available -->
+          <div id="noAssignmentsNotice" class="mt-16 glass-light rounded-xl p-4 border border-white/30 text-center text-white/70">
+            <svg class="w-8 h-8 mx-auto text-white/40 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+            <div class="font-semibold">No assignments available</div>
+            <div class="text-sm text-white/60">There are currently no assignments to submit.</div>
+          </div>
+      </div>
+
     </div>
 
     <script>
+      console.log("Script in Student page");
       let ws = null;
       let studentName = "";
       let selectedChoice = null;
+      let assignmentWS = null;
 
       // State tracking to prevent re-rendering
       let currentQuizId = null;
@@ -643,6 +741,7 @@
       }
 
       function connectToServer() {
+        console.log("connecting to server...");
         const nameInput = document.getElementById("studentName");
         studentName = nameInput.value.trim();
 
@@ -1180,6 +1279,295 @@
           scoreElement.textContent = score;
         }
       }
+
+      function initAssignmentsUI() {
+        fetch("/assignment/list")
+          .then((r) => r.json())
+          .then((data) => {
+            const listDiv = document.getElementById("assignmentList");
+            const sel = document.getElementById("uploadAssignmentSelect");
+            sel.innerHTML = "";
+
+           listDiv.innerHTML =
+              (data.assignments || []).map((a) => {
+                return `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10'>
+                  <div class='flex-1'>
+                    <div class='font-semibold text-white/90 text-xs'>${a.assignmentId}: ${escapeHtml(
+                      a.title
+                    )}</div>
+                    <div class='text-[11px] text-white/50'>${
+                      a.description ? escapeHtml(a.description) : ""
+                    }</div>
+                    <div class='text-[10px] text-white/40'>Created ${a.createdAt}$${
+                  a.dueAt ? ` · Due ${a.dueAt}` : ""
+                }</div>
+                  </div>
+                </div>`;
+              }).join("") ||
+              '<div class="text-white/50 text-xs">No assignments yet</div>';
+            // Render assignment entries (if any). If none, we'll hide the whole assignments section.
+            listDiv.innerHTML = (data.assignments || []).map((a) => {
+              return `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10' data-assignment-id='${escapeHtml(
+                a.assignmentId
+              )}'>
+                  <div class='flex-1'>
+                    <div class='font-semibold text-white/90 text-xs'>${a.assignmentId}: ${escapeHtml(
+                      a.title
+                    )}</div>
+                    <div class='text-[11px] text-white/50'>${
+                       a.description ? escapeHtml(a.description) : ""
+                    }</div>
+                    <div class='text-[10px] text-white/40'>Created ${a.createdAt}${
+                  a.dueAt ? ` · Due ${a.dueAt}` : ""
+                }</div>
+                  </div>
+                </div>`;
+            }).join("");
+
+            const hasAssignments = (data.assignments || []).length > 0;
+            const assignmentsSection = document.getElementById('assignmentsSection');
+            const noNotice = document.getElementById('noAssignmentsNotice');
+            if (hasAssignments) {
+              assignmentsSection.classList.remove('hidden');
+              noNotice.classList.add('hidden');
+            } else {
+              // Hide the full assignments UI (list/select/upload) and show a friendly notice
+              assignmentsSection.classList.add('hidden');
+             noNotice.classList.remove('hidden');
+            }
+
+            (data.assignments || []).forEach((a) => {
+              const opt = document.createElement("option");
+              opt.value = a.assignmentId;
+              opt.textContent = `${a.assignmentId} - ${a.title}`;
+              sel.appendChild(opt);
+            });
+          });
+        connectAssignmentWS();
+      }
+
+      // Add or update a single assignment in the assignments UI
+      function addOrUpdateAssignment(a) {
+        if (!a || !a.assignmentId) return;
+        // Ensure assignments UI is visible when a new assignment arrives
+        try {
+          const assignmentsSection = document.getElementById('assignmentsSection');
+          const noNotice = document.getElementById('noAssignmentsNotice');
+          if (assignmentsSection) assignmentsSection.classList.remove('hidden');
+          if (noNotice) noNotice.classList.add('hidden');
+        } catch (e) {}
+        const listDiv = document.getElementById("assignmentList");
+        const sel = document.getElementById("uploadAssignmentSelect");
+
+        // Prepare HTML for the assignment entry (matching initAssignmentsUI format)
+        const itemHtml = `<div class='flex items-start gap-2 p-2 rounded-lg bg-white/5 border border-white/10' data-assignment-id='${escapeHtml(
+          a.assignmentId
+        )}'>
+                  <div class='flex-1'>
+                    <div class='font-semibold text-white/90 text-xs'>${escapeHtml(
+          a.assignmentId
+        )}: ${escapeHtml(a.title || "")}</div>
+                    <div class='text-[11px] text-white/50'>${
+          a.description ? escapeHtml(a.description) : ""
+        }</div>
+                    <div class='text-[10px] text-white/40'>Created ${
+          a.createdAt || ""
+        }${a.dueAt ? ` · Due ${a.dueAt}` : ""}</div>
+                  </div>
+                </div>`;
+
+        // If an entry already exists in the list, replace it; otherwise prepend it
+        // find existing element safely by scanning children and comparing attribute
+        let existing = null;
+        for (let i = 0; i < listDiv.children.length; i++) {
+          const child = listDiv.children[i];
+          try {
+            if (child.getAttribute && child.getAttribute('data-assignment-id') === a.assignmentId) {
+              existing = child;
+              break;
+            }
+          } catch (e) {
+            // ignore and continue
+          }
+        }
+        if (existing) {
+          existing.outerHTML = itemHtml;
+        } else {
+          // If placeholder 'No assignments yet' exists, replace it
+          if (listDiv.innerHTML && listDiv.innerHTML.indexOf('No assignments yet') !== -1) {
+            listDiv.innerHTML = itemHtml;
+          } else {
+            // prepend so newest appears at top
+            listDiv.innerHTML = itemHtml + listDiv.innerHTML;
+          }
+        }
+
+        // Ensure select option exists (don't duplicate)
+        let found = false;
+        for (let i = 0; i < sel.options.length; i++) {
+          if (sel.options[i].value === a.assignmentId) {
+            // update text
+            sel.options[i].textContent = `${a.assignmentId} - ${a.title}`;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          const opt = document.createElement("option");
+          opt.value = a.assignmentId;
+          opt.textContent = `${a.assignmentId} - ${a.title}`;
+          sel.insertBefore(opt, sel.firstChild);
+        }
+      }
+
+      function uploadAssignmentFile() {
+        const sel = document.getElementById("uploadAssignmentSelect");
+        const fileInput = document.getElementById("uploadFileInput");
+        const status = document.getElementById("uploadStatus");
+        if (!sel.value) {
+          status.textContent = "Select an assignment";
+          return;
+        }
+        if (!fileInput.files || fileInput.files.length === 0) {
+          status.textContent = "Choose a file";
+          return;
+        }
+        if (!studentName) {
+          status.textContent = "Connect first";
+          return;
+        }
+        const file = fileInput.files[0];
+        status.textContent = "Uploading " + file.name + "...";
+        fetch(
+          `/assignment/upload?id=${encodeURIComponent(
+            sel.value
+          )}&student=${encodeURIComponent(
+            studentName
+          )}&filename=${encodeURIComponent(file.name)}`,
+          {
+            method: "POST",
+            body: file,
+          }
+        )
+          .then((r) => r.json())
+          .then((d) => {
+            if (d.success) {
+              status.textContent = "Upload complete (" + d.size + " bytes)";
+              fileInput.value = "";
+            } else {
+              status.textContent = "Upload failed: " + (d.error || "error");
+            }
+          })
+          .catch((e) => {
+            status.textContent = "Error: " + e.message;
+          });
+      }
+
+      function connectAssignmentWS() {
+        const wsStatus = document.getElementById("assignmentWsStatus");
+        const log = document.getElementById("assignmentWsLog");
+        try {
+          assignmentWS = new WebSocket("ws://" + location.hostname + ":8081/assignments");
+          assignmentWS.onopen = () => {
+            wsStatus.textContent = "WS: connected";
+          };
+          assignmentWS.onclose = () => {
+            wsStatus.textContent = "WS: disconnected (retrying...)";
+            setTimeout(connectAssignmentWS, 2000);
+          };
+          assignmentWS.onmessage = (ev) => {
+            try {
+              const o = JSON.parse(ev.data);
+              // Log the whole object for debugging
+              try { log.textContent += (log.textContent ? "\n" : "") + JSON.stringify(o); } catch { log.textContent += (log.textContent ? "\n" : "") + String(o); }
+
+              // If a new assignment was created, update UI immediately
+              if (o.type === 'assignment_created') {
+                // The server broadcasts fields: assignmentId, title, description, createdAt, dueAt
+                addOrUpdateAssignment(o);
+                // show a small toast so students notice immediately
+                try { toastAssignmentStudent(`New assignment ${o.assignmentId}: ${o.title}`); } catch (e) {}
+              }
+
+              // Optionally, if assignment upload events arrive, log them and keep behavior
+              if (o.type === 'assignment_upload') {
+                // could display a toast or update uploads UI in future
+                try { log.textContent += ' \u00B7 upload: ' + (o.studentName || '') + ' → ' + (o.filename || ''); } catch {}
+              }
+            } catch (err) {
+              // Non-JSON messages
+              log.textContent += (log.textContent ? "\n" : "") + ev.data;
+            }
+            log.scrollTop = log.scrollHeight;
+          };
+        } catch (e) {
+          wsStatus.textContent = "WS error";
+        }
+      }
+
+      function escapeHtml(s) {
+        return (s || "").replace(/[&<>"']/g, (m) => {
+          return {
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          }[m];
+        });
+      }
+
+      // Extend connect success to initialize assignments
+      const originalConnectToServer = connectToServer;
+      connectToServer = function () {
+        originalConnectToServer();
+        setTimeout(() => {
+          if (studentName) initAssignmentsUI();
+        }, 800);
+      };
+
+      // If already connected (unlikely on load), init assignments
+      if (studentName) initAssignmentsUI();
+
+      // Show a small non-blocking toast for students (pointer-events:none so it doesn't block clicks)
+      function toastAssignmentStudent(message, opts) {
+        try {
+          const container = document.getElementById('studentToasts');
+          if (!container) return;
+          // Inline styles to keep the change minimal and self-contained
+          toast.style.cssText = '\n            pointer-events: auto; display:flex; align-items:center; gap:8px;\n            background: rgba(59,130,246,0.12); border:1px solid rgba(59,130,246,0.28); color: #e6f0ff;\n            padding:10px 12px; border-radius:10px; margin-bottom:8px; max-width:360px; box-shadow:0 6px 18px rgba(2,6,23,0.6);\n            transform: translateY(8px); opacity: 0; transition: transform 220ms ease, opacity 220ms ease; font-size:13px;\n          ';
+          toast.textContent = message;
+
+          // Insert at top so newest appear first
+          if (container.firstChild) container.insertBefore(toast, container.firstChild);
+          else container.appendChild(toast);
+
+          // Trigger enter animation
+          requestAnimationFrame(() => {
+            toast.style.transform = 'translateY(0)';
+            toast.style.opacity = '1';
+          });
+
+          // Auto dismiss after specified duration
+          const timeout = (opts && opts.duration) || 5000;
+          const timer = setTimeout(() => {
+            try {
+              toast.style.transform = 'translateY(8px)';
+              toast.style.opacity = '0';
+              setTimeout(() => { try { toast.remove(); } catch (e) {} }, 240);
+            } catch (e) {}
+          }, timeout);
+
+          // Manual dismiss on click
+          toast.addEventListener('click', () => {
+            clearTimeout(timer);
+            try { toast.remove(); } catch (e) {}
+          });
+        } catch (e) {
+          console.error('Toast error', e);
+        }
+      }
     </script>
   </body>
 </html>
+

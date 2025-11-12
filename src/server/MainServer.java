@@ -29,6 +29,8 @@ public class MainServer {
     private final QuestionBank questionBank;
     private final QuizManager quizManager;
     private final HttpDashboard dashboard;
+    private AssignmentUploadServer assignmentUploadServer;
+    private Thread assignmentUploadThread;
 
     // Thread-safe registry of connected students
     private final ConcurrentHashMap<String, Student> students = new ConcurrentHashMap<>();
@@ -45,6 +47,21 @@ public class MainServer {
         this.quizManager = new QuizManager();
         this.dashboard = new HttpDashboard(HTTP_PORT, chatManager, qaManager, questionBank, quizManager, students, handlers);
 
+        // create upload server using same assignment manager embedded in dashboard
+        // We access private field via reflection since assignmentManager is private (simple workaround without API change)
+        try {
+            java.lang.reflect.Field f = HttpDashboard.class.getDeclaredField("assignmentManager");
+            f.setAccessible(true);
+            AssignmentManager am = (AssignmentManager) f.get(dashboard);
+            java.lang.reflect.Field n = HttpDashboard.class.getDeclaredField("assignmentNotifier");
+            n.setAccessible(true);
+            AssignmentWebSocketNotifier notifier = (AssignmentWebSocketNotifier) n.get(dashboard);
+            this.assignmentUploadServer = new AssignmentUploadServer(9001, am, notifier);
+            this.assignmentUploadThread = new Thread(assignmentUploadServer, "AssignmentUploadServer");
+        } catch (Exception e) {
+            System.err.println("[MainServer] Failed to init assignment upload server: " + e.getMessage());
+        }
+
         System.out.println("╔════════════════════════════════════════════════════════════╗");
         System.out.println("║   Remote Classroom Polling System - Server Started       ║");
         System.out.println("╚════════════════════════════════════════════════════════════╝");
@@ -57,6 +74,11 @@ public class MainServer {
     public void start() {
         // Start HTTP dashboard
         dashboard.start();
+        if (assignmentUploadThread != null) {
+            assignmentUploadThread.start();
+            System.out.println("[MainServer] Assignment upload TCP server started on port 9001");
+            System.out.println("[MainServer] Assignment WS notifier on port 8081 (path /assignments)");
+        }
 
         // Start CLI thread for instructor
         Thread cliThread = new Thread(this::runCLI, "InstructorCLI");
@@ -223,6 +245,7 @@ public class MainServer {
 
         // Stop HTTP server
         dashboard.stop();
+        if (assignmentUploadServer != null) assignmentUploadServer.stop();
 
         // Close server socket
         try {
