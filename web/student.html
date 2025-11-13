@@ -100,6 +100,71 @@
         -webkit-backdrop-filter: blur(20px);
         border: 1px solid rgba(255, 255, 255, 0.3);
         box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+          max-height: 90vh; /* Limit height to 90% of viewport */
+          overflow-y: auto; /* Enable vertical scrolling */
+          display: flex;
+          flex-direction: column;
+      }
+
+
+      /* Ensure the student portal header is always visible */
+      .glass-card > div:first-child {
+          position: sticky;
+          top: 0;
+          background: rgba(255, 255, 255, 0.3);
+          backdrop-filter: blur(10px);
+          z-index: 10;
+          padding-bottom: 1rem;
+          margin-bottom: 1rem;
+          border-radius: 50rem;
+      }
+
+      /* Custom scrollbar for better appearance */
+      .glass-card::-webkit-scrollbar {
+          width: 6px;
+      }
+
+      /* Custom scrollbar for better appearance */
+      .glass-card::-webkit-scrollbar {
+          width: 6px;
+      }
+
+      .glass-card::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.1);
+          border-radius: 3px;
+      }
+
+      .glass-card::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.3);
+          border-radius: 3px;
+      }
+
+      .glass-card::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.5);
+      }
+
+      /* Ensure content sections don't overflow individually */
+      #loginForm,
+      #studentInfo,
+      #waitingSection,
+      #pollSection,
+      #submittedSection,
+      #scoreSection,
+      #assignmentsSection,
+      #noAssignmentsNotice {
+          max-height: none; /* Remove any height restrictions */
+          overflow: visible;
+      }
+
+      /* Make sure the assignments list can scroll if needed */
+      #assignmentList {
+          max-height: 200px;
+          overflow-y: auto;
+      }
+
+      #assignmentWsLog {
+          max-height: 96px;
+          overflow-y: auto;
       }
 
       .glass-light {
