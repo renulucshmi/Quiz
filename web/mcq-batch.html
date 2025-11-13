@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>MCQ Batch Creator - Remote Classroom</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      header {
+        text-align: center;
+        color: white;
+        margin-bottom: 30px;
+      }
+
+      header h1 {
+        font-size: 2.5em;
+        margin-bottom: 10px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      nav {
+        margin-top: 15px;
+        display: flex;
+        gap: 15px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+
+      nav a {
+        color: white;
+        text-decoration: none;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        border-radius: 8px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        transition: all 0.3s;
+      }
+
+      nav a:hover {
+        background: rgba(255, 255, 255, 0.2);
+        transform: translateY(-2px);
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+      }
+
+      .batch-controls {
+        margin: 20px 0;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 12px;
+        padding: 20px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      }
+
+      .batch-controls label {
+        color: white;
+        font-weight: 600;
+      }
+
+      .batch-controls select {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: white;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        padding: 8px 12px;
+        font-size: 1em;
+      }
+
+      .batch-controls select:focus {
+        outline: none;
+        border-color: #60a5fa;
+      }
+
+      .batch-controls select option {
+        background: #1e3a8a;
+        color: white;
+      }
+
+      .mcq-grid {
+        display: grid;
+        gap: 20px;
+      }
+
+      .mcq-card {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 15px;
+        padding: 30px;
+        box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+        transition: all 0.3s ease;
+      }
+
+      .mcq-card:hover {
+        box-shadow: 0 8px 40px rgba(59, 130, 246, 0.4);
+      }
+
+      .mcq-card h3 {
+        margin-top: 0;
+        color: white;
+        border-bottom: 2px solid #60a5fa;
+        padding-bottom: 10px;
+      }
+
+      .form-group {
+        margin: 15px 0;
+      }
+
+      .form-group label {
+        display: block;
+        font-weight: bold;
+        margin-bottom: 5px;
+        color: white;
+      }
+
+      .form-group input,
+      .form-group textarea,
+      .form-group select {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: 8px;
+        font-size: 14px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: white;
+        transition: border-color 0.3s;
+      }
+
+      .form-group input::placeholder,
+      .form-group textarea::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .form-group input:focus,
+      .form-group textarea:focus,
+      .form-group select:focus {
+        outline: none;
+        border-color: #60a5fa;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+      }
+
+      .form-group select option {
+        background: #1e3a8a;
+        color: white;
+      }
+
+      .form-group textarea {
+        resize: vertical;
+        min-height: 80px;
+      }
+
+      .options-group {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+      }
+
+      .option-input {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .option-input label {
+        font-weight: bold;
+        min-width: 30px;
+        color: white;
+      }
+
+      .inline-fields {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 10px;
+      }
+
+      .tag-input {
+        display: flex;
+        gap: 5px;
+      }
+
+      .tag-input input {
+        flex: 1;
+      }
+
+      .required {
+        color: #fca5a5;
+      }
+
+      .btn {
+        padding: 12px 25px;
+        border: none;
+        border-radius: 8px;
+        font-size: 1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+        color: white;
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+      }
+
+      .btn:hover {
+        transform: translateY(-2px) scale(1.02);
+        box-shadow: 0 10px 30px rgba(59, 130, 246, 0.5);
+      }
+
+      .btn-primary {
+        background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      }
+
+      .btn-primary:hover {
+        box-shadow: 0 10px 30px rgba(16, 185, 129, 0.5);
+      }
+
+      .success-message {
+        background: rgba(16, 185, 129, 0.2);
+        color: #6ee7b7;
+        border: 1px solid rgba(16, 185, 129, 0.5);
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        display: none;
+        backdrop-filter: blur(10px);
+      }
+
+      .error-message {
+        background: rgba(239, 68, 68, 0.2);
+        color: #fca5a5;
+        border: 1px solid rgba(239, 68, 68, 0.5);
+        padding: 15px;
+        border-radius: 8px;
+        margin: 20px 0;
+        display: none;
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <h1
+          style="
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+          "
+        >
+          <svg width="32" height="32" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"
+            />
+          </svg>
+          MCQ Batch Creator
+        </h1>
+        <nav>
+          <a href="index.html">Home</a>
+          <a href="question-bank.html">Question Bank</a>
+          <a href="quiz-builder.html">Quiz Builder</a>
+          <a href="instructor.html">Instructor</a>
+        </nav>
+      </header>
+
+      <div class="content">
+        <div class="batch-controls">
+          <label for="questionCount">Number of Questions:</label>
+          <select id="questionCount" onchange="generateForms()">
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+          <button
+            onclick="saveBatch()"
+            class="btn btn-primary"
+            style="display: flex; align-items: center; gap: 8px"
+          >
+            <svg width="20" height="20" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"
+              />
+            </svg>
+            Save Batch
+          </button>
+        </div>
+
+        <div id="successMessage" class="success-message"></div>
+        <div id="errorMessage" class="error-message"></div>
+
+        <div id="mcqContainer" class="mcq-grid">
+          <!-- MCQ forms will be generated here -->
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const API_BASE = "http://localhost:8090";
+
+      // Sample general knowledge questions for quick demo
+      const sampleQuestions = [
+        {
+          question: "What is the tallest mountain in the world?",
+          options: ["Mount Kilimanjaro", "Mount Everest", "K2", "Mount Fuji"],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 30,
+          tags: "Geography, Mountains",
+        },
+        {
+          question: "What is the capital of France?",
+          options: ["London", "Berlin", "Paris", "Madrid"],
+          correct: 2,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Geography, Europe",
+        },
+        {
+          question: "Who painted the Mona Lisa?",
+          options: [
+            "Vincent van Gogh",
+            "Pablo Picasso",
+            "Leonardo da Vinci",
+            "Michelangelo",
+          ],
+          correct: 2,
+          difficulty: "MEDIUM",
+          timeLimit: 30,
+          tags: "Art, History",
+        },
+        {
+          question: "What is the largest planet in our solar system?",
+          options: ["Saturn", "Jupiter", "Neptune", "Earth"],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 25,
+          tags: "Science, Astronomy",
+        },
+        {
+          question: "In which year did World War II end?",
+          options: ["1943", "1944", "1945", "1946"],
+          correct: 2,
+          difficulty: "MEDIUM",
+          timeLimit: 30,
+          tags: "History, WWII",
+        },
+        {
+          question: "What is the smallest country in the world?",
+          options: ["Monaco", "Vatican City", "San Marino", "Liechtenstein"],
+          correct: 1,
+          difficulty: "HARD",
+          timeLimit: 30,
+          tags: "Geography, Countries",
+        },
+        {
+          question: "Who wrote 'Romeo and Juliet'?",
+          options: [
+            "Charles Dickens",
+            "William Shakespeare",
+            "Jane Austen",
+            "Mark Twain",
+          ],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Literature, Shakespeare",
+        },
+        {
+          question: "What is the speed of light?",
+          options: [
+            "300,000 km/s",
+            "150,000 km/s",
+            "450,000 km/s",
+            "200,000 km/s",
+          ],
+          correct: 0,
+          difficulty: "MEDIUM",
+          timeLimit: 30,
+          tags: "Physics, Science",
+        },
+        {
+          question: "Which element has the chemical symbol 'O'?",
+          options: ["Gold", "Oxygen", "Osmium", "Oganesson"],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Chemistry, Science",
+        },
+        {
+          question: "How many continents are there?",
+          options: ["5", "6", "7", "8"],
+          correct: 2,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Geography, General",
+        },
+        {
+          question: "What is the largest ocean on Earth?",
+          options: [
+            "Atlantic Ocean",
+            "Indian Ocean",
+            "Arctic Ocean",
+            "Pacific Ocean",
+          ],
+          correct: 3,
+          difficulty: "EASY",
+          timeLimit: 25,
+          tags: "Geography, Oceans",
+        },
+        {
+          question: "Who developed the theory of relativity?",
+          options: [
+            "Isaac Newton",
+            "Albert Einstein",
+            "Galileo Galilei",
+            "Stephen Hawking",
+          ],
+          correct: 1,
+          difficulty: "MEDIUM",
+          timeLimit: 30,
+          tags: "Science, Physics",
+        },
+        {
+          question: "What is the longest river in the world?",
+          options: [
+            "Amazon River",
+            "Nile River",
+            "Yangtze River",
+            "Mississippi River",
+          ],
+          correct: 1,
+          difficulty: "MEDIUM",
+          timeLimit: 30,
+          tags: "Geography, Rivers",
+        },
+        {
+          question: "How many bones are in the human body?",
+          options: ["186", "206", "226", "246"],
+          correct: 1,
+          difficulty: "HARD",
+          timeLimit: 30,
+          tags: "Biology, Anatomy",
+        },
+        {
+          question: "What is the currency of Japan?",
+          options: ["Yuan", "Won", "Yen", "Ringgit"],
+          correct: 2,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Geography, Currency",
+        },
+        {
+          question: "Which planet is known as the Red Planet?",
+          options: ["Venus", "Mars", "Jupiter", "Saturn"],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Science, Astronomy",
+        },
+        {
+          question: "What is the hardest natural substance on Earth?",
+          options: ["Gold", "Iron", "Diamond", "Platinum"],
+          correct: 2,
+          difficulty: "MEDIUM",
+          timeLimit: 25,
+          tags: "Science, Geology",
+        },
+        {
+          question: "Who was the first person to walk on the moon?",
+          options: [
+            "Buzz Aldrin",
+            "Neil Armstrong",
+            "Yuri Gagarin",
+            "John Glenn",
+          ],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 25,
+          tags: "History, Space",
+        },
+        {
+          question: "What is the boiling point of water at sea level?",
+          options: ["90°C", "100°C", "110°C", "120°C"],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Science, Physics",
+        },
+        {
+          question: "Which country is known as the Land of the Rising Sun?",
+          options: ["China", "Japan", "South Korea", "Thailand"],
+          correct: 1,
+          difficulty: "EASY",
+          timeLimit: 20,
+          tags: "Geography, Culture",
+        },
+      ];
+
+      // Load data on page load
+      window.onload = function () {
+        generateForms();
+      };
+
+      function generateForms() {
+        const count = parseInt(document.getElementById("questionCount").value);
+        const container = document.getElementById("mcqContainer");
+        container.innerHTML = "";
+
+        for (let i = 1; i <= count; i++) {
+          const card = createMCQCard(i);
+          container.appendChild(card);
+        }
+      }
+
+      function createMCQCard(number) {
+        const card = document.createElement("div");
+        card.className = "mcq-card";
+
+        // Get sample data for this question (cycle through if more questions than samples)
+        const sampleIndex = (number - 1) % sampleQuestions.length;
+        const sample = sampleQuestions[sampleIndex];
+
+        card.innerHTML = `
+                <h3>Question ${number}</h3>
+                
+                <div class="form-group">
+                    <label>Question Text <span class="required">*</span></label>
+                    <textarea id="question-${number}" placeholder="Enter your question here..." required>${
+          sample.question
+        }</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Options <span class="required">*</span></label>
+                    <div class="options-group">
+                        <div class="option-input">
+                            <label>A)</label>
+                            <input type="text" id="optionA-${number}" placeholder="Option A" value="${
+          sample.options[0]
+        }" required>
+                        </div>
+                        <div class="option-input">
+                            <label>B)</label>
+                            <input type="text" id="optionB-${number}" placeholder="Option B" value="${
+          sample.options[1]
+        }" required>
+                        </div>
+                        <div class="option-input">
+                            <label>C)</label>
+                            <input type="text" id="optionC-${number}" placeholder="Option C" value="${
+          sample.options[2]
+        }" required>
+                        </div>
+                        <div class="option-input">
+                            <label>D)</label>
+                            <input type="text" id="optionD-${number}" placeholder="Option D" value="${
+          sample.options[3]
+        }" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-group inline-fields">
+                    <div>
+                        <label>Correct Answer <span class="required">*</span></label>
+                        <select id="correct-${number}" required>
+                            <option value="0" ${
+                              sample.correct === 0 ? "selected" : ""
+                            }>A</option>
+                            <option value="1" ${
+                              sample.correct === 1 ? "selected" : ""
+                            }>B</option>
+                            <option value="2" ${
+                              sample.correct === 2 ? "selected" : ""
+                            }>C</option>
+                            <option value="3" ${
+                              sample.correct === 3 ? "selected" : ""
+                            }>D</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Difficulty</label>
+                        <select id="difficulty-${number}">
+                            <option value="EASY" ${
+                              sample.difficulty === "EASY" ? "selected" : ""
+                            }>Easy</option>
+                            <option value="MEDIUM" ${
+                              sample.difficulty === "MEDIUM" ? "selected" : ""
+                            }>Medium</option>
+                            <option value="HARD" ${
+                              sample.difficulty === "HARD" ? "selected" : ""
+                            }>Hard</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Time Limit (seconds)</label>
+                        <input type="number" id="timeLimit-${number}" placeholder="30" min="10" max="300" value="${
+          sample.timeLimit
+        }">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" id="tags-${number}" placeholder="Java, Networking, Chapter 5" value="${
+          sample.tags
+        }">
+                </div>
+            `;
+        return card;
+      }
+
+      async function saveBatch() {
+        const count = parseInt(document.getElementById("questionCount").value);
+        const questions = [];
+        let hasErrors = false;
+
+        // Collect all questions
+        for (let i = 1; i <= count; i++) {
+          const questionText = document
+            .getElementById(`question-${i}`)
+            .value.trim();
+          const optionA = document.getElementById(`optionA-${i}`).value.trim();
+          const optionB = document.getElementById(`optionB-${i}`).value.trim();
+          const optionC = document.getElementById(`optionC-${i}`).value.trim();
+          const optionD = document.getElementById(`optionD-${i}`).value.trim();
+          const correctIndex = parseInt(
+            document.getElementById(`correct-${i}`).value
+          );
+          const difficulty = document.getElementById(`difficulty-${i}`).value;
+          const timeLimitStr = document.getElementById(`timeLimit-${i}`).value;
+          const tagsStr = document.getElementById(`tags-${i}`).value;
+
+          // Validation
+          if (!questionText) {
+            showError(`Question ${i}: Question text is required`);
+            hasErrors = true;
+            continue;
+          }
+
+          if (!optionA || !optionB || !optionC || !optionD) {
+            showError(`Question ${i}: All 4 options are required`);
+            hasErrors = true;
+            continue;
+          }
+
+          const tags = tagsStr
+            ? tagsStr
+                .split(",")
+                .map((t) => t.trim())
+                .filter((t) => t)
+            : [];
+          const timeLimit = timeLimitStr ? parseInt(timeLimitStr) : null;
+
+          questions.push({
+            text: questionText,
+            options: [optionA, optionB, optionC, optionD],
+            correctIndex: correctIndex,
+            tags: tags,
+            difficulty: difficulty,
+            timeLimitSeconds: timeLimit,
+          });
+        }
+
+        if (hasErrors) {
+          return;
+        }
+
+        if (questions.length === 0) {
+          showError("No valid questions to save");
+          return;
+        }
+
+        // Send to server
+        try {
+          const response = await fetch(`${API_BASE}/api/questions/batch`, {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(questions),
+          });
+
+          const data = await response.json();
+
+          if (response.ok && data.success) {
+            showSuccess(
+              `Successfully saved ${data.questionIds.length} questions!`
+            );
+            // Clear forms after 2 seconds
+            setTimeout(() => {
+              generateForms();
+            }, 2000);
+          } else {
+            showError(data.error || data.message || "Failed to save questions");
+          }
+        } catch (error) {
+          showError("Network error: " + error.message);
+        }
+      }
+
+      function showSuccess(message) {
+        const successDiv = document.getElementById("successMessage");
+        successDiv.textContent = message;
+        successDiv.style.display = "block";
+
+        const errorDiv = document.getElementById("errorMessage");
+        errorDiv.style.display = "none";
+
+        setTimeout(() => {
+          successDiv.style.display = "none";
+        }, 5000);
+      }
+
+      function showError(message) {
+        const errorDiv = document.getElementById("errorMessage");
+        errorDiv.textContent = message;
+        errorDiv.style.display = "block";
+
+        const successDiv = document.getElementById("successMessage");
+        successDiv.style.display = "none";
+      }
+    </script>
+  </body>
+</html>

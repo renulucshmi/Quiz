@@ -89,7 +89,8 @@ public class StudentClient {
      * Handle incoming message from server.
      */
     private void handleMessage(String json) {
-        if (json.isEmpty()) return;
+        if (json.isEmpty())
+            return;
 
         if ("PONG".equals(json)) {
             return; // Heartbeat response
@@ -111,6 +112,21 @@ public class StudentClient {
                     break;
                 case "ack":
                     handleAck(msg);
+                    break;
+                case "chat":
+                    handleChatMessage(msg);
+                    break;
+                case "chatCleared":
+                    handleChatCleared();
+                    break;
+                case "vote":
+                    handleVote(msg, json);
+                    break;
+                case "voteClosed":
+                    handleVoteClosed(msg);
+                    break;
+                case "quizReveal":
+                    handleQuizReveal(msg);
                     break;
                 case "error":
                     handleError(msg);
@@ -260,14 +276,37 @@ public class StudentClient {
     }
 
     /**
+     * Handle incoming chat message.
+     */
+    private void handleChatMessage(Map<String, String> msg) {
+        String username = msg.get("username");
+        String message = msg.get("message");
+
+        if ("SYSTEM".equals(username)) {
+            System.out.println("\n[SYSTEM] " + message);
+        } else {
+            System.out.println("\n💬 " + username + ": " + message);
+        }
+    }
+
+    /**
+     * Handle chat cleared notification.
+     */
+    private void handleChatCleared() {
+        System.out.println("\n[CHAT] Chat history has been cleared by instructor");
+    }
+
+    /**
      * Simple JSON parser (basic key-value pairs only).
      */
     private Map<String, String> parseJson(String json) {
         java.util.HashMap<String, String> map = new java.util.HashMap<>();
 
         json = json.trim();
-        if (json.startsWith("{")) json = json.substring(1);
-        if (json.endsWith("}")) json = json.substring(0, json.length() - 1);
+        if (json.startsWith("{"))
+            json = json.substring(1);
+        if (json.endsWith("}"))
+            json = json.substring(0, json.length() - 1);
 
         // Simple split (doesn't handle nested objects or arrays properly)
         String[] pairs = json.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
@@ -290,7 +329,8 @@ public class StudentClient {
     private String buildJson(String... keyValues) {
         StringBuilder sb = new StringBuilder("{");
         for (int i = 0; i < keyValues.length; i += 2) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append("\"").append(keyValues[i]).append("\":\"");
             sb.append(keyValues[i + 1]).append("\"");
         }
@@ -302,9 +342,83 @@ public class StudentClient {
      * Remove quotes from string.
      */
     private String unquote(String s) {
-        if (s.startsWith("\"")) s = s.substring(1);
-        if (s.endsWith("\"")) s = s.substring(0, s.length() - 1);
+        if (s.startsWith("\""))
+            s = s.substring(1);
+        if (s.endsWith("\""))
+            s = s.substring(0, s.length() - 1);
         return s;
+    }
+
+    /**
+     * Handle vote message from server.
+     */
+    private void handleVote(Map<String, String> msg, String rawJson) {
+        String voteId = msg.get("id");
+        String question = msg.get("question");
+        String allowRevote = msg.get("allowRevote");
+        String deadline = msg.get("deadline");
+
+        System.out.println("\n" + "═".repeat(60));
+        System.out.println("📅 DATE VOTING OPENED");
+        System.out.println("═".repeat(60));
+        System.out.println("Question: " + question);
+        if (deadline != null && !deadline.equals("null")) {
+            System.out.println("Deadline: " + deadline);
+        }
+        System.out.println();
+
+        // Extract options
+        String[] options = extractOptions(rawJson);
+        if (options != null) {
+            for (int i = 0; i < options.length; i++) {
+                System.out.println("  " + (char)('A' + i) + ") " + options[i]);
+            }
+        }
+
+        System.out.println("═".repeat(60));
+        if ("true".equals(allowRevote)) {
+            System.out.println("ℹ️  You can change your vote anytime before the deadline");
+        }
+        System.out.println();
+
+        // Note: Actual voting would happen through web interface or separate command
+        System.out.println("[Client] Vote received. Use web interface to cast your vote.");
+    }
+
+    /**
+     * Handle vote closed message.
+     */
+    private void handleVoteClosed(Map<String, String> msg) {
+        String voteId = msg.get("voteId");
+        
+        System.out.println("\n" + "═".repeat(60));
+        System.out.println("🔒 VOTING CLOSED");
+        System.out.println("═".repeat(60));
+        System.out.println("Vote ID: " + voteId);
+        System.out.println("Check the web interface for final results.");
+        System.out.println("═".repeat(60));
+        System.out.println();
+    }
+
+    /**
+     * Handle quiz reveal message.
+     */
+    private void handleQuizReveal(Map<String, String> msg) {
+        String quizId = msg.get("quizId");
+        String questionId = msg.get("questionId");
+        String correctIndexStr = msg.get("correctIndex");
+        
+        if (correctIndexStr != null) {
+            int correctIndex = Integer.parseInt(correctIndexStr);
+            char correctChoice = (char)('A' + correctIndex);
+            
+            System.out.println("\n" + "═".repeat(60));
+            System.out.println("✅ ANSWER REVEALED");
+            System.out.println("═".repeat(60));
+            System.out.println("Correct Answer: " + correctChoice);
+            System.out.println("═".repeat(60));
+            System.out.println();
+        }
     }
 
     /**
@@ -313,9 +427,12 @@ public class StudentClient {
     private void cleanup() {
         running = false;
         try {
-            if (in != null) in.close();
-            if (out != null) out.close();
-            if (socket != null) socket.close();
+            if (in != null)
+                in.close();
+            if (out != null)
+                out.close();
+            if (socket != null)
+                socket.close();
         } catch (IOException e) {
             // Ignore
         }

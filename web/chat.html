@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chat Room - Remote Polling</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      @keyframes fadeIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      @keyframes float {
+        0%,
+        100% {
+          transform: translateY(0px);
+        }
+        50% {
+          transform: translateY(-10px);
+        }
+      }
+
+      @keyframes glow {
+        0%,
+        100% {
+          box-shadow: 0 0 20px rgba(56, 189, 248, 0.3);
+        }
+        50% {
+          box-shadow: 0 0 30px rgba(56, 189, 248, 0.6);
+        }
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        background: linear-gradient(
+          135deg,
+          #1e40af 0%,
+          #1e3a8a 50%,
+          #312e81 100%
+        );
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+        padding: 20px;
+        position: relative;
+        overflow-x: hidden;
+      }
+
+      body::before {
+        content: "";
+        position: absolute;
+        top: -50%;
+        left: -50%;
+        width: 200%;
+        height: 200%;
+        background: radial-gradient(
+          circle,
+          rgba(59, 130, 246, 0.1) 0%,
+          transparent 70%
+        );
+        animation: float 20s ease-in-out infinite;
+        z-index: 0;
+      }
+
+      .chat-container {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        border-radius: 20px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        max-width: 800px;
+        width: 100%;
+        height: 80vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        position: relative;
+        z-index: 1;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .chat-header {
+        background: rgba(59, 130, 246, 0.2);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+        padding: 20px;
+        text-align: center;
+      }
+
+      .chat-header h1 {
+        margin: 0;
+        font-size: 1.8em;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .chat-header .subtitle {
+        margin-top: 5px;
+        opacity: 0.9;
+        font-size: 0.9em;
+      }
+
+      .chat-status {
+        padding: 10px 20px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+      .status-indicator {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: white;
+      }
+
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #10b981;
+        animation: pulse 2s infinite;
+        box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+      }
+
+      .status-dot.disabled {
+        background: #ef4444;
+        animation: none;
+        box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
+      }
+
+      @keyframes pulse {
+        0%,
+        100% {
+          opacity: 1;
+          transform: scale(1);
+        }
+        50% {
+          opacity: 0.7;
+          transform: scale(1.1);
+        }
+      }
+
+      .user-badge {
+        background: rgba(59, 130, 246, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        padding: 5px 15px;
+        border-radius: 20px;
+        font-size: 0.9em;
+        font-weight: 600;
+      }
+
+      .login-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(30, 64, 175, 0.95);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 100;
+        border-radius: 20px;
+      }
+
+      .login-overlay.hidden {
+        display: none;
+      }
+
+      .login-box {
+        background: rgba(255, 255, 255, 0.2);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 40px;
+        border-radius: 15px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
+        text-align: center;
+        max-width: 400px;
+        width: 100%;
+        animation: fadeIn 0.5s ease-out;
+      }
+
+      .login-box h2 {
+        color: white;
+        margin-bottom: 20px;
+        text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+      }
+
+      .login-box p {
+        color: rgba(255, 255, 255, 0.9);
+      }
+
+      .login-box input {
+        width: 100%;
+        padding: 12px 15px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 8px;
+        font-size: 1em;
+        margin-bottom: 15px;
+        color: white;
+      }
+
+      .login-box input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .login-box input:focus {
+        outline: none;
+        border-color: rgba(59, 130, 246, 0.6);
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      }
+
+      .login-box button {
+        width: 100%;
+        padding: 12px;
+        background: rgba(59, 130, 246, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        border-radius: 8px;
+        font-size: 1.1em;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .login-box button:hover {
+        transform: translateY(-2px);
+        background: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
+      }
+
+      .messages-container {
+        flex: 1;
+        overflow-y: auto;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .message {
+        margin-bottom: 15px;
+        animation: slideIn 0.3s ease-out;
+      }
+
+      @keyframes slideIn {
+        from {
+          opacity: 0;
+          transform: translateY(10px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .message-header {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 5px;
+      }
+
+      .message-author {
+        font-weight: 600;
+        color: #60a5fa;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+      }
+
+      .message-author.system {
+        color: #fbbf24;
+      }
+
+      .message-time {
+        font-size: 0.85em;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .message-content {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 12px 15px;
+        border-radius: 10px;
+        border-left: 3px solid #60a5fa;
+        word-wrap: break-word;
+        color: white;
+      }
+
+      .message.system .message-content {
+        background: rgba(251, 191, 36, 0.2);
+        border: 1px solid rgba(251, 191, 36, 0.3);
+        border-left-color: #fbbf24;
+        font-style: italic;
+      }
+
+      .message.own .message-content {
+        background: rgba(59, 130, 246, 0.25);
+        border: 1px solid rgba(59, 130, 246, 0.3);
+        border-left-color: #3b82f6;
+      }
+
+      .chat-input-container {
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-top: 1px solid rgba(255, 255, 255, 0.2);
+      }
+
+      .chat-input-wrapper {
+        display: flex;
+        gap: 10px;
+      }
+
+      .chat-input {
+        flex: 1;
+        padding: 12px 15px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border-radius: 25px;
+        font-size: 1em;
+        resize: none;
+        font-family: inherit;
+        color: white;
+      }
+
+      .chat-input::placeholder {
+        color: rgba(255, 255, 255, 0.6);
+      }
+
+      .chat-input:focus {
+        outline: none;
+        border-color: rgba(59, 130, 246, 0.6);
+        background: rgba(255, 255, 255, 0.2);
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+      }
+
+      .chat-input:disabled {
+        background: rgba(255, 255, 255, 0.05);
+        cursor: not-allowed;
+        opacity: 0.5;
+      }
+
+      .send-button {
+        padding: 12px 25px;
+        background: rgba(59, 130, 246, 0.3);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: white;
+        border-radius: 25px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s;
+      }
+
+      .send-button:hover:not(:disabled) {
+        transform: scale(1.05);
+        background: rgba(59, 130, 246, 0.4);
+        box-shadow: 0 5px 20px rgba(59, 130, 246, 0.4);
+      }
+
+      .send-button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .chat-disabled-notice {
+        text-align: center;
+        padding: 20px;
+        background: rgba(239, 68, 68, 0.2);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+        color: #fecaca;
+        border-radius: 10px;
+        margin: 20px;
+        display: none;
+      }
+
+      .chat-disabled-notice.show {
+        display: block;
+      }
+
+      .empty-state {
+        text-align: center;
+        padding: 60px 20px;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      .empty-state .icon {
+        font-size: 4em;
+        margin-bottom: 15px;
+        opacity: 0.5;
+        animation: float 3s ease-in-out infinite;
+      }
+
+      .empty-state h3 {
+        margin-bottom: 10px;
+        color: white;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="chat-container">
+      <!-- Login Overlay -->
+      <div class="login-overlay" id="loginOverlay">
+        <div class="login-box">
+          <h2>💬 Join Chat</h2>
+          <p style="color: #fff; margin-bottom: 20px">
+            Enter your name to join the discussion
+          </p>
+          <input
+            type="text"
+            id="nameInput"
+            placeholder="Your name..."
+            maxlength="30"
+            autofocus
+          />
+          <button onclick="joinChat()">Join Chat Room</button>
+        </div>
+      </div>
+
+      <!-- Chat Header -->
+      <div class="chat-header">
+        <h1>💬 Discussion Room</h1>
+        <p class="subtitle">Remote Classroom Interaction System</p>
+      </div>
+
+      <!-- Chat Status -->
+      <div class="chat-status">
+        <div class="status-indicator">
+          <span class="status-dot" id="statusDot"></span>
+          <span id="statusText" style="color: #000000;">Chat Enabled</span>
+        </div>
+        <div class="user-badge" id="userBadge"></div>
+      </div>
+
+      <!-- Chat Disabled Notice -->
+      <div class="chat-disabled-notice" id="chatDisabledNotice">
+        🔒 Chat is currently disabled by the instructor
+      </div>
+
+      <!-- Messages Container -->
+      <div class="messages-container" id="messagesContainer">
+        <div class="empty-state">
+          <div class="icon">💭</div>
+          <h3>No messages yet</h3>
+          <p>Be the first to start the conversation!</p>
+        </div>
+      </div>
+
+      <!-- Chat Input -->
+      <div class="chat-input-container">
+        <div class="chat-input-wrapper">
+          <textarea
+            class="chat-input"
+            id="messageInput"
+            placeholder="Type your message..."
+            rows="1"
+            maxlength="500"
+            disabled
+          ></textarea>
+          <button
+            class="send-button"
+            id="sendButton"
+            onclick="sendMessage()"
+            disabled
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let studentName = "";
+      let chatEnabled = false;
+      let pollInterval = null;
+
+      function joinChat() {
+        const name = document.getElementById("nameInput").value.trim();
+        if (!name) {
+          alert("Please enter your name");
+          return;
+        }
+
+        // Check if chat is enabled first
+        fetch("/chat/status")
+          .then((response) => response.json())
+          .then((statusData) => {
+            if (!statusData.enabled) {
+              alert("Chat is currently disabled by the instructor");
+              return;
+            }
+
+            // For web-only users (not TCP connected), just set the name and join
+            studentName = name;
+            document.getElementById("loginOverlay").classList.add("hidden");
+            document.getElementById("userBadge").textContent = name;
+            loadMessages();
+            startPolling();
+          })
+          .catch((error) => {
+            alert("Connection error: " + error.message);
+          });
+      }
+
+      function loadMessages() {
+        fetch("/chat/messages?limit=50")
+          .then((response) => response.json())
+          .then((data) => {
+            chatEnabled = data.enabled;
+            updateChatStatus(data.enabled);
+
+            const container = document.getElementById("messagesContainer");
+            container.innerHTML = "";
+
+            if (data.messages.length === 0) {
+              container.innerHTML = `
+                            <div class="empty-state">
+                                <div class="icon">💭</div>
+                                <h3>No messages yet</h3>
+                                <p>Be the first to start the conversation!</p>
+                            </div>
+                        `;
+            } else {
+              data.messages.forEach((msg) => displayMessage(msg, false));
+              scrollToBottom();
+            }
+          })
+          .catch((error) => {
+            console.error("Error loading messages:", error);
+          });
+      }
+
+      function displayMessage(msg, animate = true) {
+        const container = document.getElementById("messagesContainer");
+
+        // Remove empty state if exists
+        const emptyState = container.querySelector(".empty-state");
+        if (emptyState) {
+          emptyState.remove();
+        }
+
+        const isOwn = msg.username === studentName;
+        const isSystem = msg.username === "SYSTEM";
+
+        const messageDiv = document.createElement("div");
+        messageDiv.className = `message ${isOwn ? "own" : ""} ${
+          isSystem ? "system" : ""
+        }`;
+
+        const time = new Date(msg.timestamp).toLocaleTimeString();
+
+        messageDiv.innerHTML = `
+                <div class="message-header">
+                    <span class="message-author ${isSystem ? "system" : ""}">${
+          msg.username
+        }</span>
+                    <span class="message-time">${time}</span>
+                </div>
+                <div class="message-content">${escapeHtml(msg.message)}</div>
+            `;
+
+        container.appendChild(messageDiv);
+
+        if (animate) {
+          scrollToBottom();
+        }
+      }
+
+      function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const message = input.value.trim();
+
+        if (!message || !chatEnabled) {
+          return;
+        }
+
+        fetch("/chat/send", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: studentName,
+            message: message,
+          }),
+        })
+          .then((response) => response.json())
+          .then((data) => {
+            if (data.success) {
+              input.value = "";
+              // Message will appear via polling
+            } else {
+              alert(data.error || "Could not send message");
+            }
+          })
+          .catch((error) => {
+            alert("Error sending message");
+          });
+      }
+
+      function updateChatStatus(enabled) {
+        chatEnabled = enabled;
+        const statusDot = document.getElementById("statusDot");
+        const statusText = document.getElementById("statusText");
+        const messageInput = document.getElementById("messageInput");
+        const sendButton = document.getElementById("sendButton");
+        const notice = document.getElementById("chatDisabledNotice");
+
+        if (enabled) {
+          statusDot.classList.remove("disabled");
+          statusText.textContent = "Chat Enabled";
+          messageInput.disabled = false;
+          sendButton.disabled = false;
+          notice.classList.remove("show");
+        } else {
+          statusDot.classList.add("disabled");
+          statusText.textContent = "Chat Disabled";
+          messageInput.disabled = true;
+          sendButton.disabled = true;
+          notice.classList.add("show");
+        }
+      }
+
+      function startPolling() {
+        // Poll for new messages every 2 seconds
+        pollInterval = setInterval(() => {
+          fetch("/chat/messages?limit=50")
+            .then((response) => response.json())
+            .then((data) => {
+              // Update chat status
+              if (data.enabled !== chatEnabled) {
+                updateChatStatus(data.enabled);
+              }
+
+              // Get current message count
+              const currentMessages =
+                document.querySelectorAll(".message").length;
+
+              // If new messages arrived, reload
+              if (data.messages.length > currentMessages) {
+                const newMessages = data.messages.slice(currentMessages);
+                newMessages.forEach((msg) => displayMessage(msg, true));
+              }
+            })
+            .catch((error) => {
+              console.error("Polling error:", error);
+            });
+        }, 2000);
+      }
+
+      function scrollToBottom() {
+        const container = document.getElementById("messagesContainer");
+        container.scrollTop = container.scrollHeight;
+      }
+
+      function escapeHtml(text) {
+        const div = document.createElement("div");
+        div.textContent = text;
+        return div.innerHTML;
+      }
+
+      // Handle Enter key to send message
+      document.addEventListener("DOMContentLoaded", () => {
+        const messageInput = document.getElementById("messageInput");
+        messageInput.addEventListener("keypress", (e) => {
+          if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            sendMessage();
+          }
+        });
+
+        const nameInput = document.getElementById("nameInput");
+        nameInput.addEventListener("keypress", (e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            joinChat();
+          }
+        });
+
+        // Auto-login if student name is stored
+        const storedName = localStorage.getItem("chatStudentName");
+        if (storedName) {
+          // Clear the stored name after reading
+          localStorage.removeItem("chatStudentName");
+
+          // Set the name and auto-join
+          nameInput.value = storedName;
+
+          // Small delay to ensure page is fully loaded
+          setTimeout(() => {
+            joinChat();
+          }, 100);
+        }
+      });
+
+      // Cleanup on page unload
+      window.addEventListener("beforeunload", () => {
+        if (pollInterval) {
+          clearInterval(pollInterval);
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -21,8 +21,10 @@ public class JsonUtil {
 
         // Remove outer braces
         json = json.trim();
-        if (json.startsWith("{")) json = json.substring(1);
-        if (json.endsWith("}")) json = json.substring(0, json.length() - 1);
+        if (json.startsWith("{"))
+            json = json.substring(1);
+        if (json.endsWith("}"))
+            json = json.substring(0, json.length() - 1);
 
         // Split by comma (simple approach - doesn't handle nested objects)
         String[] pairs = json.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
@@ -45,7 +47,8 @@ public class JsonUtil {
     public static String buildObject(Object... keyValues) {
         StringBuilder sb = new StringBuilder("{");
         for (int i = 0; i < keyValues.length; i += 2) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append("\"").append(keyValues[i]).append("\":");
 
             Object value = keyValues[i + 1];
@@ -75,7 +78,8 @@ public class JsonUtil {
     public static String buildArray(String[] values) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < values.length; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append("\"").append(escape(values[i])).append("\"");
         }
         sb.append("]");
@@ -88,7 +92,8 @@ public class JsonUtil {
     public static String buildArray(int[] values) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < values.length; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append(values[i]);
         }
         sb.append("]");
@@ -101,7 +106,8 @@ public class JsonUtil {
     public static String buildArray(double[] values) {
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < values.length; i++) {
-            if (i > 0) sb.append(",");
+            if (i > 0)
+                sb.append(",");
             sb.append(String.format("%.1f", values[i]));
         }
         sb.append("]");
@@ -112,8 +118,10 @@ public class JsonUtil {
      * Remove quotes from a string.
      */
     private static String unquote(String s) {
-        if (s.startsWith("\"")) s = s.substring(1);
-        if (s.endsWith("\"")) s = s.substring(0, s.length() - 1);
+        if (s.startsWith("\""))
+            s = s.substring(1);
+        if (s.endsWith("\""))
+            s = s.substring(0, s.length() - 1);
         return s;
     }
 
@@ -126,5 +134,15 @@ public class JsonUtil {
                 .replace("\n", "\\n")
                 .replace("\r", "\\r")
                 .replace("\t", "\\t");
+    }
+
+    /**
+     * Quote a string for JSON (with escaping).
+     */
+    public static String quote(String s) {
+        if (s == null) {
+            return "null";
+        }
+        return "\"" + escape(s) + "\"";
     }
 }
